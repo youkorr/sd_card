@@ -15,7 +15,7 @@
 #endif
 
 namespace esphome {
-namespace sd_mmc_card {
+namespace sd_card {
 
 enum MemoryUnits : short { Byte = 0, KiloByte = 1, MegaByte = 2, GigaByte = 3, TeraByte = 4, PetaByte = 5 };
 
@@ -188,5 +188,5 @@ template<typename... Ts> class SdMmcDeleteFileAction : public Action<Ts...> {
 
 long double convertBytes(uint64_t, MemoryUnits);
 
-}  // namespace sd_mmc_card
+}  // namespace sd_card
 }  // namespace esphome
