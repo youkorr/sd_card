@@ -14,7 +14,7 @@
 int constexpr SD_OCR_SDHC_CAP = (1 << 30);  // value defined in esp-idf/components/sdmmc/include/sd_protocol_defs.h
 
 namespace esphome {
-namespace sd_mmc_card {
+namespace sd_card {
 
 static constexpr size_t FILE_PATH_MAX = ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN;
 static const char *TAG = "sd_mmc_card";
@@ -267,7 +267,7 @@ void SdMmc::update_sensors() {
 #endif
 }
 
-}  // namespace sd_mmc_card
+}  // namespace sd_card
 }  // namespace esphome
 
 #endif  // USE_ESP_IDF
