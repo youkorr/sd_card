@@ -11,7 +11,7 @@
 #define SDCARD_PWR_CTRL GPIO_NUM_43
 
 namespace esphome {
-namespace sd_mmc_card {
+namespace sd_card {
 
 static const char *TAG = "sd_mmc_card_esp32_arduino";
 
@@ -186,7 +186,7 @@ void SdMmc::update_sensors() {
 #endif
 }
 
-}  // namespace sd_mmc_card
+}  // namespace sd_card
 }  // namespace esphome
 
 #endif  // USE_ESP32_FRAMEWORK_ARDUINO
