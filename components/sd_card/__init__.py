@@ -20,15 +20,15 @@ CONF_DATA2_PIN = "data2_pin"
 CONF_DATA3_PIN = "data3_pin"
 CONF_MODE_1BIT = "mode_1bit"
 
-sd_mmc_card_component_ns = cg.esphome_ns.namespace("sd_mmc_card")
-SdMmc = sd_mmc_card_component_ns.class_("SdMmc", cg.Component)
+sd_card_component_ns = cg.esphome_ns.namespace("sd_card")
+SdCard = sd_card_component_ns.class_("SdCard", cg.Component)
 
 # Action
-SdMmcWriteFileAction = sd_mmc_card_component_ns.class_("SdMmcWriteFileAction", automation.Action)
-SdMmcAppendFileAction = sd_mmc_card_component_ns.class_("SdMmcAppendFileAction", automation.Action)
-SdMmcCreateDirectoryAction = sd_mmc_card_component_ns.class_("SdMmcCreateDirectoryAction", automation.Action)
-SdMmcRemoveDirectoryAction = sd_mmc_card_component_ns.class_("SdMmcRemoveDirectoryAction", automation.Action)
-SdMmcDeleteFileAction = sd_mmc_card_component_ns.class_("SdMmcDeleteFileAction", automation.Action)
+SdMmcWriteFileAction = sd_card_component_ns.class_("SdMmcWriteFileAction", automation.Action)
+SdMmcAppendFileAction = sd_card_component_ns.class_("SdMmcAppendFileAction", automation.Action)
+SdMmcCreateDirectoryAction = sd_card_component_ns.class_("SdMmcCreateDirectoryAction", automation.Action)
+SdMmcRemoveDirectoryAction = sd_card_component_ns.class_("SdMmcRemoveDirectoryAction", automation.Action)
+SdMmcDeleteFileAction = sd_card_component_ns.class_("SdMmcDeleteFileAction", automation.Action)
 
 def validate_raw_data(value):
     if isinstance(value, str):
