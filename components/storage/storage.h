@@ -1,5 +1,7 @@
 #pragma once
 #include "esphome.h"
+#include <vector>
+#include <fstream>
 
 namespace esphome {
 namespace storage {
@@ -35,6 +37,27 @@ class StorageComponent : public Component {
     }
   }
 
+  std::vector<uint8_t> read_file(const char *path) {
+    return read_file(std::string(path));
+  }
+
+  std::vector<uint8_t> read_file(const std::string &path) {
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+      ESP_LOGE("storage", "Failed to open file for reading: %s", path.c_str());
+      return {};
+    }
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> buffer(size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+      ESP_LOGE("storage", "Failed to read file: %s", path.c_str());
+      return {};
+    }
+    return buffer;
+  }
+
   void setup() override {
     if (platform_ == "flash") {
       setup_flash();
@@ -67,10 +90,10 @@ class StorageComponent : public Component {
 template<typename... Ts>
 class PlayAudioFileAction : public Action<Ts...> {
  public:
-  PlayAudioFileAction() : storage_(nullptr) {}  // Constructeur par défaut
+  PlayAudioFileAction() : storage_(nullptr) {}
   explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
 
-  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
 
   void play(Ts... x) override {
@@ -89,10 +112,10 @@ class PlayAudioFileAction : public Action<Ts...> {
 template<typename... Ts>
 class LoadImageAction : public Action<Ts...> {
  public:
-  LoadImageAction() : storage_(nullptr) {}  // Constructeur par défaut
+  LoadImageAction() : storage_(nullptr) {}
   explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
 
-  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
 
   void play(Ts... x) override {
@@ -110,6 +133,7 @@ class LoadImageAction : public Action<Ts...> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
