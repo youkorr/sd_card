@@ -7,3 +7,4 @@ static const char *const TAG = "storage";
 
 }  // namespace storage
 }  // namespace esphome
+
