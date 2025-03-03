@@ -1,6 +1,5 @@
 #pragma once
 #include "esphome.h"
-#include "esphome/core/action.h"  // Ajout de l'inclusion nécessaire
 
 namespace esphome {
 namespace storage {
@@ -62,12 +61,12 @@ class StorageComponent : public Component {
   }
 };
 
-// Correction de l'héritage en s'assurant que `Action` est bien accessible
-class PlayAudioFileAction : public esphome::core::Action {
+// Correction : remplacer Action par Trigger<>
+class PlayAudioFileAction : public esphome::Trigger<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
-  void execute() override {  // Remplace play() par execute() si nécessaire
+  void trigger() override {  // Remplace play() par trigger()
     storage_->play_file(file_id_);
   }
 
@@ -76,11 +75,11 @@ class PlayAudioFileAction : public esphome::core::Action {
   std::string file_id_;
 };
 
-class LoadImageAction : public esphome::core::Action {
+class LoadImageAction : public esphome::Trigger<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void execute() override {  // Remplace play() par execute() si nécessaire
+  void trigger() override {  // Remplace play() par trigger()
     storage_->load_image(image_id_);
   }
 
@@ -91,4 +90,5 @@ class LoadImageAction : public esphome::core::Action {
 
 }  // namespace storage
 }  // namespace esphome
+
 
