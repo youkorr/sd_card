@@ -61,13 +61,14 @@ class StorageComponent : public Component {
   }
 };
 
-// Correction : Utilisation de Action<void> à la place de Trigger<>
-class PlayAudioFileAction : public esphome::Action<void> {
+// Correction : Utilisation de Action<> sans paramètre
+class PlayAudioFileAction : public esphome::Action<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
-  void play() {
+  void play() override {
     storage_->play_file(file_id_);
+    this->perform();  // Déclenche l'action dans ESPHome
   }
 
  private:
@@ -75,12 +76,13 @@ class PlayAudioFileAction : public esphome::Action<void> {
   std::string file_id_;
 };
 
-class LoadImageAction : public esphome::Action<void> {
+class LoadImageAction : public esphome::Action<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void play() {
+  void play() override {
     storage_->load_image(image_id_);
+    this->perform();  // Déclenche l'action dans ESPHome
   }
 
  private:
@@ -90,6 +92,7 @@ class LoadImageAction : public esphome::Action<void> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
