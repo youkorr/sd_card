@@ -63,5 +63,32 @@ class StorageComponent : public Component {
   }
 };
 
+// Déclaration des classes d'action
+class PlayAudioFileAction : public Action {
+ public:
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  void set_file_id(const std::string &file_id) { file_id_ = file_id; }
+  void play() override {
+    storage_->play_file(file_id_);
+  }
+
+ private:
+  StorageComponent *storage_;
+  std::string file_id_;
+};
+
+class LoadImageAction : public Action {
+ public:
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
+  void play() override {
+    storage_->load_image(image_id_);
+  }
+
+ private:
+  StorageComponent *storage_;
+  std::string image_id_;
+};
+
 }  // namespace storage
 }  // namespace esphome
