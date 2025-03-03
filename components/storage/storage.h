@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome.h"
+#include "esphome/core/automation.h"  // Ajouté pour Trigger<>
 
 namespace esphome {
 namespace storage {
@@ -61,14 +62,14 @@ class StorageComponent : public Component {
   }
 };
 
-// Correction : Utilisation de Action<> sans paramètre
-class PlayAudioFileAction : public esphome::Action<> {
+// ✅ Utilisation de Trigger<> pour exécuter l'action
+class PlayAudioFileAction : public esphome::Trigger<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
-  void play() override {
+  void trigger() {  // Utiliser trigger() au lieu de play()
     storage_->play_file(file_id_);
-    this->perform();  // Déclenche l'action dans ESPHome
+    this->call();  // Déclenche l'événement pour ESPHome
   }
 
  private:
@@ -76,13 +77,13 @@ class PlayAudioFileAction : public esphome::Action<> {
   std::string file_id_;
 };
 
-class LoadImageAction : public esphome::Action<> {
+class LoadImageAction : public esphome::Trigger<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void play() override {
+  void trigger() {  // Utiliser trigger() au lieu de play()
     storage_->load_image(image_id_);
-    this->perform();  // Déclenche l'action dans ESPHome
+    this->call();  // Déclenche l'événement pour ESPHome
   }
 
  private:
@@ -92,6 +93,7 @@ class LoadImageAction : public esphome::Action<> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
