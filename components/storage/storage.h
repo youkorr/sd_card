@@ -1,7 +1,7 @@
 #pragma once
 #include "esphome.h"
-#include <vector>
-#include <fstream>
+#include <FS.h>
+#include <SD.h>
 
 namespace esphome {
 namespace storage {
@@ -21,7 +21,7 @@ class StorageComponent : public Component {
     for (const auto &file : files_) {
       if (file.second == file_id) {
         ESP_LOGD("storage", "Playing file: %s", file.first.c_str());
-        // Ajoutez ici la logique pour jouer le fichier audio
+        read_file(file.first);  // Lire le fichier
         break;
       }
     }
@@ -35,27 +35,6 @@ class StorageComponent : public Component {
         break;
       }
     }
-  }
-
-  std::vector<uint8_t> read_file(const char *path) {
-    return read_file(std::string(path));
-  }
-
-  std::vector<uint8_t> read_file(const std::string &path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-      ESP_LOGE("storage", "Failed to open file for reading: %s", path.c_str());
-      return {};
-    }
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<uint8_t> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-      ESP_LOGE("storage", "Failed to read file: %s", path.c_str());
-      return {};
-    }
-    return buffer;
   }
 
   void setup() override {
@@ -84,24 +63,41 @@ class StorageComponent : public Component {
                file.first.c_str(), file.second.c_str());
     }
   }
+
+  void read_file(const std::string &file_path) {
+    if (!SD.begin()) {
+      ESP_LOGE("storage", "Failed to initialize SD card");
+      return;
+    }
+
+    File file = SD.open(file_path.c_str(), FILE_READ);
+    if (!file) {
+      ESP_LOGE("storage", "Failed to open file: %s", file_path.c_str());
+      return;
+    }
+
+    ESP_LOGD("storage", "Reading file: %s", file_path.c_str());
+    while (file.available()) {
+      // Lire et traiter les données du fichier
+      uint8_t buffer[128];
+      size_t bytes_read = file.read(buffer, sizeof(buffer));
+      // Ajoutez ici la logique pour traiter les données audio
+    }
+
+    file.close();
+  }
 };
 
 // Déclaration des classes d'action compatibles avec ESPHome
 template<typename... Ts>
 class PlayAudioFileAction : public Action<Ts...> {
  public:
-  PlayAudioFileAction() : storage_(nullptr) {}
   explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
 
-  void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
 
   void play(Ts... x) override {
-    if (storage_ != nullptr) {
-      storage_->play_file(file_id_);
-    } else {
-      ESP_LOGE("storage", "Storage component not set for PlayAudioFileAction");
-    }
+    storage_->play_file(file_id_);
   }
 
  protected:
@@ -112,18 +108,12 @@ class PlayAudioFileAction : public Action<Ts...> {
 template<typename... Ts>
 class LoadImageAction : public Action<Ts...> {
  public:
-  LoadImageAction() : storage_(nullptr) {}
   explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
 
-  void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
 
   void play(Ts... x) override {
-    if (storage_ != nullptr) {
-      storage_->load_image(image_id_);
-    } else {
-      ESP_LOGE("storage", "Storage component not set for LoadImageAction");
-    }
+    storage_->load_image(image_id_);
   }
 
  protected:
