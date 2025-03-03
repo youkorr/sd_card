@@ -1,6 +1,9 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES, CONF_TYPE, CONF_RESIZE, CONF_TRANSPARENCY
+from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES, CONF_TYPE, CONF_RESIZE
+
+# Définir manuellement CONF_TRANSPARENCY
+CONF_TRANSPARENCY = "transparency"
 
 DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
@@ -25,7 +28,7 @@ IMAGE_SCHEMA = cv.Schema({
     cv.Required("type"): cv.one_of("RGB565", "GRAYSCALE", "BINARY", upper=True),
     cv.Required("id"): cv.string,
     cv.Optional("resize"): cv.dimensions,
-    cv.Optional("transparency"): cv.one_of("alpha_channel", "none", lower=True),
+    cv.Optional(CONF_TRANSPARENCY): cv.one_of("alpha_channel", "none", lower=True),
 })
 
 STORAGE_SCHEMA = cv.Schema({
@@ -59,5 +62,5 @@ def to_code(config):
                     image["id"],
                     image["type"],
                     image.get("resize", "0x0"),
-                    image.get("transparency", "none")
+                    image.get(CONF_TRANSPARENCY, "none")
                 ))
