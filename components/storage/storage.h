@@ -62,14 +62,14 @@ class StorageComponent : public Component {
   }
 };
 
-// ✅ Utilisation de Trigger<> pour exécuter l'action
+// ✅ Correction : Utilisation de Trigger<> avec trigger()
 class PlayAudioFileAction : public esphome::Trigger<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
-  void trigger() {  // Utiliser trigger() au lieu de play()
+  void trigger() override {  // Utiliser trigger() correctement
     storage_->play_file(file_id_);
-    this->call();  // Déclenche l'événement pour ESPHome
+    this->trigger();  // Déclenche l'action
   }
 
  private:
@@ -81,9 +81,9 @@ class LoadImageAction : public esphome::Trigger<> {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void trigger() {  // Utiliser trigger() au lieu de play()
+  void trigger() override {  // Utiliser trigger() correctement
     storage_->load_image(image_id_);
-    this->call();  // Déclenche l'événement pour ESPHome
+    this->trigger();  // Déclenche l'action
   }
 
  private:
@@ -93,6 +93,7 @@ class LoadImageAction : public esphome::Trigger<> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
