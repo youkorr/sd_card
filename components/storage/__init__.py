@@ -10,6 +10,7 @@ storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 STORAGE_SCHEMA = cv.Schema({
+    cv.Required(CONF_ID): cv.declare_id(StorageComponent),
     cv.Required(CONF_PLATFORM): cv.one_of("flash", "inline", lower=True),
     cv.Required(CONF_FILES): cv.ensure_list({
         cv.Required("source"): cv.string,
