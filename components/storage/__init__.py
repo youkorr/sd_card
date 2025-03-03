@@ -12,9 +12,9 @@ storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 # Schéma pour les actions
-STORAGE_PLAY_AUDIO_FILE_SCHEMA = cv.Schema({
+STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
     cv.Required("storage_id"): cv.use_id(StorageComponent),
-    cv.Required("file_id"): cv.string,
+    cv.Required("media_file"): cv.string,
 })
 
 STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
@@ -24,15 +24,15 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
 
 # Enregistrement des actions
 @automation.register_action(
-    "storage.play_audio_file",
-    storage_ns.class_("PlayAudioFileAction"),
-    STORAGE_PLAY_AUDIO_FILE_SCHEMA,
+    "media_player.play_media",
+    storage_ns.class_("PlayMediaAction"),
+    STORAGE_PLAY_MEDIA_SCHEMA,
 )
-def storage_play_audio_file_to_code(config, action_id, template_arg, args):
+def storage_play_media_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     storage = yield cg.get_variable(config["storage_id"])
     cg.add(var.set_storage(storage))
-    cg.add(var.set_file_id(config["file_id"]))
+    cg.add(var.set_media_file(config["media_file"]))
     yield var
 
 @automation.register_action(
