@@ -1,9 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES, CONF_TYPE, CONF_RESIZE
-
-# Définir manuellement CONF_TRANSPARENCY
-CONF_TRANSPARENCY = "transparency"
+from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
 
 DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
@@ -14,21 +11,16 @@ storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 # Ajout d'une méthode pour jouer un fichier audio
-@cg.register_action
 def play_audio_file(storage_id, file_id):
     return cg.statement(f"id({storage_id})->play_file({file_id});")
 
-# Ajout d'une méthode pour charger une image
-@cg.register_action
+# Ajout d'une méthode pour accéder à une image
 def load_image(storage_id, image_id):
     return cg.statement(f"id({storage_id})->load_image({image_id});")
 
 IMAGE_SCHEMA = cv.Schema({
     cv.Required("file"): cv.string,
-    cv.Required("type"): cv.one_of("RGB565", "GRAYSCALE", "BINARY", upper=True),
     cv.Required("id"): cv.string,
-    cv.Optional("resize"): cv.dimensions,
-    cv.Optional(CONF_TRANSPARENCY): cv.one_of("alpha_channel", "none", lower=True),
 })
 
 STORAGE_SCHEMA = cv.Schema({
@@ -57,10 +49,4 @@ def to_code(config):
         
         if CONF_IMAGES in conf:
             for image in conf[CONF_IMAGES]:
-                cg.add(var.add_image(
-                    image["file"],
-                    image["id"],
-                    image["type"],
-                    image.get("resize", "0x0"),
-                    image.get(CONF_TRANSPARENCY, "none")
-                ))
+                cg.add(var.add_image(image["file"], image["id"]))
