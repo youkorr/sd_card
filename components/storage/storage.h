@@ -88,6 +88,7 @@ class PlayAudioFileAction : public Action<Ts...> {
  public:
   explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
 
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_speaker(Component *speaker) { speaker_ = speaker; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
 
