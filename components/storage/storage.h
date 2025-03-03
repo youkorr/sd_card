@@ -11,9 +11,8 @@ class StorageComponent : public Component {
     files_.push_back({source, id});
   }
 
-  void add_image(const std::string &file, const std::string &id, const std::string &type,
-                 const std::string &resize, const std::string &transparency) {
-    images_.push_back({file, id, type, resize, transparency});
+  void add_image(const std::string &file, const std::string &id) {
+    images_.push_back({file, id});
   }
 
   void play_file(const std::string &file_id) {
@@ -28,9 +27,9 @@ class StorageComponent : public Component {
 
   void load_image(const std::string &image_id) {
     for (const auto &image : images_) {
-      if (image.id == image_id) {
-        ESP_LOGD("storage", "Loading image: %s", image.file.c_str());
-        // Ajoutez ici la logique pour charger l'image
+      if (image.second == image_id) {
+        ESP_LOGD("storage", "Loading image: %s", image.first.c_str());
+        // Ajoutez ici la logique pour accéder à l'image
         break;
       }
     }
@@ -47,15 +46,7 @@ class StorageComponent : public Component {
  private:
   std::string platform_;
   std::vector<std::pair<std::string, std::string>> files_;
-  std::vector<ImageConfig> images_;
-
-  struct ImageConfig {
-    std::string file;
-    std::string id;
-    std::string type;
-    std::string resize;
-    std::string transparency;
-  };
+  std::vector<std::pair<std::string, std::string>> images_;
 
   void setup_flash() {
     for (const auto &file : files_) {
