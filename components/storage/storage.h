@@ -17,11 +17,11 @@ class StorageComponent : public Component {
     images_.push_back({file, id});
   }
 
-  void play_file(const std::string &file_id) {
+  void play_file(const std::string &file_id, Component *speaker) {
     for (const auto &file : files_) {
       if (file.second == file_id) {
         ESP_LOGD("storage", "Playing file: %s", file.first.c_str());
-        read_file(file.first);  // Lire le fichier
+        read_file(file.first, speaker);  // Lire le fichier et envoyer au speaker
         break;
       }
     }
@@ -64,7 +64,7 @@ class StorageComponent : public Component {
     }
   }
 
-  void read_file(const std::string &file_path) {
+  void read_file(const std::string &file_path, Component *speaker) {
     if (!SD.begin()) {
       ESP_LOGE("storage", "Failed to initialize SD card");
       return;
@@ -78,10 +78,10 @@ class StorageComponent : public Component {
 
     ESP_LOGD("storage", "Reading file: %s", file_path.c_str());
     while (file.available()) {
-      // Lire et traiter les données du fichier
+      // Lire et envoyer les données audio au speaker
       uint8_t buffer[128];
       size_t bytes_read = file.read(buffer, sizeof(buffer));
-      // Ajoutez ici la logique pour traiter les données audio
+      // Ajoutez ici la logique pour envoyer les données au speaker
     }
 
     file.close();
@@ -94,31 +94,17 @@ class PlayAudioFileAction : public Action<Ts...> {
  public:
   explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
 
+  void set_speaker(Component *speaker) { speaker_ = speaker; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
 
   void play(Ts... x) override {
-    storage_->play_file(file_id_);
+    storage_->play_file(file_id_, speaker_);
   }
 
  protected:
   StorageComponent *storage_;
+  Component *speaker_;
   std::string file_id_;
-};
-
-template<typename... Ts>
-class LoadImageAction : public Action<Ts...> {
- public:
-  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
-
-  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-
-  void play(Ts... x) override {
-    storage_->load_image(image_id_);
-  }
-
- protected:
-  StorageComponent *storage_;
-  std::string image_id_;
 };
 
 }  // namespace storage
