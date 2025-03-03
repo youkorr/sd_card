@@ -67,12 +67,18 @@ class StorageComponent : public Component {
 template<typename... Ts>
 class PlayAudioFileAction : public Action<Ts...> {
  public:
+  PlayAudioFileAction() : storage_(nullptr) {}  // Constructeur par défaut
   explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
 
+  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
 
   void play(Ts... x) override {
-    storage_->play_file(file_id_);
+    if (storage_ != nullptr) {
+      storage_->play_file(file_id_);
+    } else {
+      ESP_LOGE("storage", "Storage component not set for PlayAudioFileAction");
+    }
   }
 
  protected:
@@ -83,12 +89,18 @@ class PlayAudioFileAction : public Action<Ts...> {
 template<typename... Ts>
 class LoadImageAction : public Action<Ts...> {
  public:
+  LoadImageAction() : storage_(nullptr) {}  // Constructeur par défaut
   explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
 
+  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
 
   void play(Ts... x) override {
-    storage_->load_image(image_id_);
+    if (storage_ != nullptr) {
+      storage_->load_image(image_id_);
+    } else {
+      ESP_LOGE("storage", "Storage component not set for LoadImageAction");
+    }
   }
 
  protected:
@@ -98,6 +110,7 @@ class LoadImageAction : public Action<Ts...> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
