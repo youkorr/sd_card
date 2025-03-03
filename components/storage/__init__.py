@@ -8,20 +8,15 @@ CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
 CONF_IMAGES = "images"
+CONF_SPEAKER = "speaker"
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 # Schéma pour les actions
 STORAGE_PLAY_AUDIO_FILE_SCHEMA = cv.Schema({
-    cv.Required("id"): cv.use_id(automation.Action),
     cv.Required("storage_id"): cv.use_id(StorageComponent),
+    cv.Required("speaker_id"): cv.use_id(cg.Component),  # Référence au composant speaker
     cv.Required("file_id"): cv.string,
-})
-
-STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
-    cv.Required("id"): cv.use_id(automation.Action),
-    cv.Required("storage_id"): cv.use_id(StorageComponent),
-    cv.Required("image_id"): cv.string,
 })
 
 # Enregistrement des actions
@@ -33,20 +28,10 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
 def storage_play_audio_file_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     storage = yield cg.get_variable(config["storage_id"])
+    speaker = yield cg.get_variable(config["speaker_id"])
     cg.add(var.set_storage(storage))
+    cg.add(var.set_speaker(speaker))
     cg.add(var.set_file_id(config["file_id"]))
-    yield var
-
-@automation.register_action(
-    "storage.load_image",
-    storage_ns.class_("LoadImageAction"),
-    STORAGE_LOAD_IMAGE_SCHEMA,
-)
-def storage_load_image_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
-    storage = yield cg.get_variable(config["storage_id"])
-    cg.add(var.set_storage(storage))
-    cg.add(var.set_image_id(config["image_id"]))
     yield var
 
 # Schéma pour le stockage
