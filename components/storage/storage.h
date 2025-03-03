@@ -1,7 +1,5 @@
 #pragma once
 #include "esphome.h"
-#include <FS.h>
-#include <SD.h>
 
 namespace esphome {
 namespace storage {
@@ -65,26 +63,22 @@ class StorageComponent : public Component {
   }
 
   void read_file(const std::string &file_path, Component *speaker) {
-    if (!SD.begin()) {
-      ESP_LOGE("storage", "Failed to initialize SD card");
-      return;
-    }
-
-    File file = SD.open(file_path.c_str(), FILE_READ);
+    FILE *file = fopen(file_path.c_str(), "rb");
     if (!file) {
       ESP_LOGE("storage", "Failed to open file: %s", file_path.c_str());
       return;
     }
 
     ESP_LOGD("storage", "Reading file: %s", file_path.c_str());
-    while (file.available()) {
-      // Lire et envoyer les données audio au speaker
-      uint8_t buffer[128];
-      size_t bytes_read = file.read(buffer, sizeof(buffer));
+    uint8_t buffer[128];
+    while (true) {
+      size_t bytes_read = fread(buffer, 1, sizeof(buffer), file);
+      if (bytes_read == 0) break;
+
       // Ajoutez ici la logique pour envoyer les données au speaker
     }
 
-    file.close();
+    fclose(file);
   }
 };
 
