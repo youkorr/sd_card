@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome.h"
+#include "esphome/core/action.h"  // Ajout de l'inclusion nécessaire
 
 namespace esphome {
 namespace storage {
@@ -19,7 +20,6 @@ class StorageComponent : public Component {
     for (const auto &file : files_) {
       if (file.second == file_id) {
         ESP_LOGD("storage", "Playing file: %s", file.first.c_str());
-        // Ajoutez ici la logique pour jouer le fichier audio
         break;
       }
     }
@@ -29,7 +29,6 @@ class StorageComponent : public Component {
     for (const auto &image : images_) {
       if (image.second == image_id) {
         ESP_LOGD("storage", "Loading image: %s", image.first.c_str());
-        // Ajoutez ici la logique pour accéder à l'image
         break;
       }
     }
@@ -63,12 +62,12 @@ class StorageComponent : public Component {
   }
 };
 
-// Déclaration des classes d'action
-class PlayAudioFileAction : public Action {
+// Correction de l'héritage en s'assurant que `Action` est bien accessible
+class PlayAudioFileAction : public esphome::core::Action {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
-  void play() override {
+  void execute() override {  // Remplace play() par execute() si nécessaire
     storage_->play_file(file_id_);
   }
 
@@ -77,11 +76,11 @@ class PlayAudioFileAction : public Action {
   std::string file_id_;
 };
 
-class LoadImageAction : public Action {
+class LoadImageAction : public esphome::core::Action {
  public:
   void set_storage(StorageComponent *storage) { storage_ = storage; }
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void play() override {
+  void execute() override {  // Remplace play() par execute() si nécessaire
     storage_->load_image(image_id_);
   }
 
@@ -92,3 +91,4 @@ class LoadImageAction : public Action {
 
 }  // namespace storage
 }  // namespace esphome
+
