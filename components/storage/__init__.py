@@ -13,11 +13,13 @@ StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 # Schéma pour les actions
 STORAGE_PLAY_AUDIO_FILE_SCHEMA = cv.Schema({
+    cv.Required("id"): cv.use_id(automation.Action),
     cv.Required("storage_id"): cv.use_id(StorageComponent),
     cv.Required("file_id"): cv.string,
 })
 
 STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
+    cv.Required("id"): cv.use_id(automation.Action),
     cv.Required("storage_id"): cv.use_id(StorageComponent),
     cv.Required("image_id"): cv.string,
 })
