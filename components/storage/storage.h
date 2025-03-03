@@ -15,10 +15,10 @@ class StorageComponent : public Component {
     images_.push_back({file, id});
   }
 
-  void play_file(const std::string &file_id) {
+  void play_media(const std::string &media_file) {
     for (const auto &file : files_) {
-      if (file.second == file_id) {
-        ESP_LOGD("storage", "Playing file: %s", file.first.c_str());
+      if (file.second == media_file) {
+        ESP_LOGD("storage", "Playing media: %s", file.first.c_str());
         // Ajoutez ici la logique pour jouer le fichier audio
         break;
       }
@@ -65,25 +65,25 @@ class StorageComponent : public Component {
 
 // Déclaration des classes d'action compatibles avec ESPHome
 template<typename... Ts>
-class PlayAudioFileAction : public Action<Ts...> {
+class PlayMediaAction : public Action<Ts...> {
  public:
-  PlayAudioFileAction() : storage_(nullptr) {}  // Constructeur par défaut
-  explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
+  PlayMediaAction() : storage_(nullptr) {}  // Constructeur par défaut
+  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
 
   void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
-  void set_file_id(const std::string &file_id) { file_id_ = file_id; }
+  void set_media_file(const std::string &media_file) { media_file_ = media_file; }
 
   void play(Ts... x) override {
     if (storage_ != nullptr) {
-      storage_->play_file(file_id_);
+      storage_->play_media(media_file_);
     } else {
-      ESP_LOGE("storage", "Storage component not set for PlayAudioFileAction");
+      ESP_LOGE("storage", "Storage component not set for PlayMediaAction");
     }
   }
 
  protected:
   StorageComponent *storage_;
-  std::string file_id_;
+  std::string media_file_;
 };
 
 template<typename... Ts>
