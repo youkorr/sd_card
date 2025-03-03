@@ -1,6 +1,5 @@
 #pragma once
 #include "esphome.h"
-#include "esphome/core/automation.h"  // Ajouté pour Trigger<>
 
 namespace esphome {
 namespace storage {
@@ -20,6 +19,7 @@ class StorageComponent : public Component {
     for (const auto &file : files_) {
       if (file.second == file_id) {
         ESP_LOGD("storage", "Playing file: %s", file.first.c_str());
+        // Ajoutez ici la logique pour jouer le fichier audio
         break;
       }
     }
@@ -29,6 +29,7 @@ class StorageComponent : public Component {
     for (const auto &image : images_) {
       if (image.second == image_id) {
         ESP_LOGD("storage", "Loading image: %s", image.first.c_str());
+        // Ajoutez ici la logique pour accéder à l'image
         break;
       }
     }
@@ -62,31 +63,35 @@ class StorageComponent : public Component {
   }
 };
 
-// ✅ Correction : Utilisation de Trigger<> avec trigger()
-class PlayAudioFileAction : public esphome::Trigger<> {
+// Déclaration des classes d'action compatibles avec ESPHome
+template<typename... Ts>
+class PlayAudioFileAction : public Action<Ts...> {
  public:
-  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  explicit PlayAudioFileAction(StorageComponent *storage) : storage_(storage) {}
+
   void set_file_id(const std::string &file_id) { file_id_ = file_id; }
-  void trigger() override {  // Utiliser trigger() correctement
+
+  void play(Ts... x) override {
     storage_->play_file(file_id_);
-    this->trigger();  // Déclenche l'action
   }
 
- private:
+ protected:
   StorageComponent *storage_;
   std::string file_id_;
 };
 
-class LoadImageAction : public esphome::Trigger<> {
+template<typename... Ts>
+class LoadImageAction : public Action<Ts...> {
  public:
-  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
+
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void trigger() override {  // Utiliser trigger() correctement
+
+  void play(Ts... x) override {
     storage_->load_image(image_id_);
-    this->trigger();  // Déclenche l'action
   }
 
- private:
+ protected:
   StorageComponent *storage_;
   std::string image_id_;
 };
