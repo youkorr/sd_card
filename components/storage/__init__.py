@@ -1,6 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
+from esphome import automation
 
 DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
@@ -11,17 +12,25 @@ CONF_DATA = "data"
 storage_ns = cg.esphome_ns.namespace('storage')
 MediaPlayerComponent = storage_ns.class_('MediaPlayerComponent', cg.Component)
 
-# Schema for storage configuration
-def validate_unique_media_player_id(config):
-    # Collect all media player IDs
-    media_player_ids = []
-    for conf in config:
-        media_player_id = conf[CONF_ID]
-        if media_player_id in media_player_ids:
-            raise cv.Invalid(f"Duplicate media player ID: {media_player_id}")
-        media_player_ids.append(media_player_id)
-    return config
+# Unique ID validation function
+def validate_unique_media_player_id(full_config):
+    # Track existing IDs across all configurations
+    existing_ids = set()
+    
+    # Check for duplicates in storage configurations
+    for conf in full_config.get('storage', []):
+        conf_id = conf.get('id')
+        if not conf_id:
+            continue
+        
+        if conf_id in existing_ids:
+            raise cv.Invalid(f"Duplicate media player ID: {conf_id}")
+        
+        existing_ids.add(conf_id)
+    
+    return full_config
 
+# Schema for storage configuration
 STORAGE_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(MediaPlayerComponent),
     cv.Required(CONF_PLATFORM): cv.one_of("media_player", lower=True),
@@ -31,13 +40,16 @@ STORAGE_SCHEMA = cv.Schema({
     }),
 }).extend(cv.COMPONENT_SCHEMA)
 
-CONFIG_SCHEMA = cv.All(
-    cv.ensure_list(STORAGE_SCHEMA),
-    validate_unique_media_player_id
-)
+# Modify CONFIG_SCHEMA to use the validation function
+CONFIG_SCHEMA = cv.Schema({
+    cv.Optional('storage'): cv.All(
+        cv.ensure_list(STORAGE_SCHEMA),
+        validate_unique_media_player_id
+    )
+})
 
 def to_code(config):
-    for conf in config:
+    for conf in config.get('storage', []):
         var = cg.new_Pvariable(conf[CONF_ID])
         yield cg.register_component(var, conf)
         
