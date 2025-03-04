@@ -13,12 +13,22 @@ class StorageComponent : public esphome::Component {
  public:
   void set_platform(const std::string &platform) { platform_ = platform; }
   
-  void add_file(std::function<std::string()> source_func, const std::string &id) {
+  void add_file(std::function<std::vector<uint8_t>()> source_func, const std::string &id) {
     files_.push_back({source_func, id});
   }
   
   void add_image(const std::string &file, const std::string &id) {
     images_.push_back({file, id});
+  }
+  
+  std::string read_file(const std::string &id) {
+    for (const auto &file : files_) {
+      if (file.second == id) {
+        auto data_vec = file.first();
+        return std::string(data_vec.begin(), data_vec.end());
+      }
+    }
+    return "";
   }
   
   void play_media(const std::string &media_file);
@@ -32,7 +42,7 @@ class StorageComponent : public esphome::Component {
 
  private:
   std::string platform_;
-  std::vector<std::pair<std::function<std::string()>, std::string>> files_;
+  std::vector<std::pair<std::function<std::vector<uint8_t>()>, std::string>> files_;
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
