@@ -35,47 +35,21 @@ class StorageComponent : public Component {
     }
   }
 
-  void setup() override {
-    if (platform_ == "flash") {
-      setup_flash();
-    } else if (platform_ == "inline") {
-      setup_inline();
-    } else if (platform_ == "sd_card") {
-      setup_sd_card();  // Appel de la méthode pour initialiser la carte SD
-    }
-  }
+  void setup() override;  // Déclaration de la méthode sans la définir ici
+  void setup_sd_card();   // Déclaration de la méthode sans la définir ici
 
  private:
   std::string platform_;
   std::vector<std::pair<std::string, std::string>> files_;
   std::vector<std::pair<std::string, std::string>> images_;
 
-  // Nouvelle méthode pour gérer l'initialisation de la carte SD
-  void setup_sd_card() {
-    if (!SD_MMC.begin("/sdcard", true)) {  // "/sdcard" est le chemin de montage de la carte SD
-      ESP_LOGE("storage", "Card failed, or not present");
-      return;  // Si la carte SD ne peut pas être initialisée, on retourne immédiatement
-    }
-    ESP_LOGD("storage", "Card mounted successfully");
-  }
-
-  void setup_flash() {
-    for (const auto &file : files_) {
-      ESP_LOGD("storage", "Setting up flash storage: %s -> %s", 
-               file.first.c_str(), file.second.c_str());
-    }
-  }
-
-  void setup_inline() {
-    for (const auto &file : files_) {
-      ESP_LOGD("storage", "Setting up inline storage: %s -> %s", 
-               file.first.c_str(), file.second.c_str());
-    }
-  }
+  void setup_flash();  // Définition des autres méthodes sans duplication
+  void setup_inline();
 };
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
