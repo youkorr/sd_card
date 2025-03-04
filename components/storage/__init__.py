@@ -9,12 +9,12 @@ CONF_STORAGE = "storage"
 CONF_DATA = "data"
 
 storage_ns = cg.esphome_ns.namespace('storage')
-SdCardPlayerComponent = storage_ns.class_('SdCardPlayerComponent', cg.Component)
+MediaPlayerComponent = storage_ns.class_('MediaPlayerComponent', cg.Component)
 
 # Schema for storage configuration
 STORAGE_SCHEMA = cv.Schema({
-    cv.Required(CONF_ID): cv.declare_id(SdCardPlayerComponent),
-    cv.Required(CONF_PLATFORM): cv.one_of("sd_card_player", lower=True),
+    cv.Required(CONF_ID): cv.declare_id(MediaPlayerComponent),
+    cv.Required(CONF_PLATFORM): cv.one_of("media_player", lower=True),
     cv.Optional(CONF_FILES): cv.ensure_list({
         cv.Required(CONF_DATA): cv.returning_lambda,
         cv.Required(CONF_ID): cv.string,
