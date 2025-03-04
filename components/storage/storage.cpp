@@ -3,10 +3,10 @@
 namespace esphome {
 namespace storage {
 
-static const char *const TAG = "media_player";
+static const char *const TAG = "sound";
 
-void MediaPlayerComponent::setup() {
-  ESP_LOGD(TAG, "Initializing Media Player (Platform: %s)", platform_.c_str());
+void SoundComponent::setup() {
+  ESP_LOGD(TAG, "Initializing Sound Component (Platform: %s)", platform_.c_str());
   
   // Log available files
   for (const auto &file : files_) {
@@ -16,14 +16,14 @@ void MediaPlayerComponent::setup() {
   }
 }
 
-void MediaPlayerComponent::loop() {
+void SoundComponent::loop() {
   // Placeholder for any ongoing playback management
   if (is_playing_) {
     // Add any necessary playback monitoring logic
   }
 }
 
-void MediaPlayerComponent::play_file(const std::string &id) {
+void SoundComponent::play_file(const std::string &id) {
   // Find the file
   auto it = files_.find(id);
   if (it != files_.end()) {
@@ -51,7 +51,7 @@ void MediaPlayerComponent::play_file(const std::string &id) {
   is_playing_ = false;
 }
 
-void MediaPlayerComponent::stop_playback() {
+void SoundComponent::stop_playback() {
   if (is_playing_) {
     ESP_LOGD(TAG, "Stopping playback of file: %s", current_file_id_.c_str());
     
