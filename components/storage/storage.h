@@ -13,7 +13,7 @@ class StorageComponent : public esphome::Component {
  public:
   void set_platform(const std::string &platform) { platform_ = platform; }
   
-  void add_file(std::function<std::vector<uint8_t>()> source_func, const std::string &id) {
+  void add_file(std::function<std::string()> source_func, const std::string &id) {
     files_.push_back({source_func, id});
   }
   
@@ -32,11 +32,39 @@ class StorageComponent : public esphome::Component {
 
  private:
   std::string platform_;
-  std::vector<std::pair<std::function<std::vector<uint8_t>()>, std::string>> files_;
+  std::vector<std::pair<std::function<std::string()>, std::string>> files_;
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
-// Rest of the code remains the same...
+class PlayMediaAction : public esphome::Action<> {
+ public:
+  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
+  void set_media_file(const std::string &media_file) { media_file_ = media_file; }
+  void play() override {
+    if (storage_ && !media_file_.empty()) {
+      storage_->play_media(media_file_);
+    }
+  }
+
+ private:
+  StorageComponent *storage_{nullptr};
+  std::string media_file_;
+};
+
+class LoadImageAction : public esphome::Action<> {
+ public:
+  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
+  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
+  void play() override {
+    if (storage_ && !image_id_.empty()) {
+      storage_->load_image(image_id_);
+    }
+  }
+
+ private:
+  StorageComponent *storage_{nullptr};
+  std::string image_id_;
+};
 
 }  // namespace storage
 }  // namespace esphome
