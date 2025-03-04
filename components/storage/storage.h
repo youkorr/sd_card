@@ -4,7 +4,6 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
 
-
 namespace esphome {
 namespace storage {
 
@@ -32,32 +31,22 @@ class StorageComponent : public esphome::Component {
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
-template<typename... Ts>
-class PlayMediaAction : public esphome::Action<Ts...> {
+class PlayMediaAction : public esphome::Action<> {
  public:
-  PlayMediaAction(StorageComponent *storage, esphome::speaker::SpeakerMediaPlayer *media_player)
-    : storage_(storage), media_player_(media_player) {}
-
+  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
   void set_media_file(const std::string &media_file) { media_file_ = media_file; }
-
   void play() override {
-    if (storage_ && media_player_ && !media_file_.empty()) {
-      ESP_LOGD("storage", "Playing media file: %s", media_file_.c_str());
+    if (storage_ && !media_file_.empty()) {
       storage_->play_media(media_file_);
-      media_player_->play_on_device_media_file(media_file_);
-    } else {
-      ESP_LOGW("storage", "Unable to play media: storage, media player, or file name is missing");
     }
   }
 
  private:
   StorageComponent *storage_{nullptr};
-  esphome::speaker::SpeakerMediaPlayer *media_player_{nullptr};
   std::string media_file_;
 };
 
-template<typename... Ts>
-class LoadImageAction : public esphome::Action<Ts...> {
+class LoadImageAction : public esphome::Action<> {
  public:
   explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
