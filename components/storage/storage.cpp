@@ -1,7 +1,7 @@
 #include "storage.h"
 #include "esphome/core/log.h"
 #include "esphome/components/media_player/media_player.h"
-#include "SD.h"
+#include "esphome/components/sd/sd.h"
 
 namespace esphome {
 namespace storage {
@@ -11,7 +11,9 @@ static const char *const TAG = "storage";
 bool file_exists_with_extensions(const std::string &base_path, const std::vector<std::string> &extensions) {
   for (const auto &ext : extensions) {
     std::string full_path = base_path + ext;
-    if (SD.exists(full_path.c_str())) {
+    File file = SD.open(full_path.c_str(), FILE_READ);
+    if (file) {
+      file.close();
       return true;
     }
   }
@@ -21,7 +23,9 @@ bool file_exists_with_extensions(const std::string &base_path, const std::vector
 std::string find_file_with_extensions(const std::string &base_path, const std::vector<std::string> &extensions) {
   for (const auto &ext : extensions) {
     std::string full_path = base_path + ext;
-    if (SD.exists(full_path.c_str())) {
+    File file = SD.open(full_path.c_str(), FILE_READ);
+    if (file) {
+      file.close();
       return full_path;
     }
   }
@@ -61,7 +65,6 @@ void StorageComponent::play_media(const std::string &media_file) {
   }
 }
 
-// Le reste du code reste identique à l'implémentation précédente
 void StorageComponent::setup() {
   // Initialiser la carte SD
   if (!SD.begin()) {
@@ -85,19 +88,23 @@ void StorageComponent::setup_sd_card() {
   
   // Lister les fichiers sur la carte SD
   File root = SD.open("/");
-  while (true) {
-    File entry = root.openNextFile();
-    if (!entry) {
-      // Plus de fichiers
-      break;
+  if (root) {
+    while (true) {
+      File entry = root.openNextFile();
+      if (!entry) {
+        // Plus de fichiers
+        break;
+      }
+      
+      if (!entry.isDirectory()) {
+        ESP_LOGD(TAG, "Found file: %s", entry.name());
+      }
+      entry.close();
     }
-    
-    if (!entry.isDirectory()) {
-      ESP_LOGD(TAG, "Found file: %s", entry.name());
-    }
-    entry.close();
+    root.close();
+  } else {
+    ESP_LOGE(TAG, "Failed to open root directory");
   }
-  root.close();
 }
 
 // Autres méthodes restent inchangées
