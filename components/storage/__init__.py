@@ -35,17 +35,17 @@ def to_code(config):
         
         if CONF_FILES in conf:
             for file in conf[CONF_FILES]:
-                # Process lambda for data
+                # Process lambda for data with vector to string conversion
                 data_lambda = yield cg.process_lambda(
                     file[CONF_DATA], 
                     [],  # No arguments
-                    return_type=cg.std_string
+                    return_type=cg.std_string,
+                    # Add conversion from vector to string
+                    template='return std::string(reinterpret_cast<const char*>(x.data()), x.size());'
                 )
                 
                 # Add file with processed lambda
                 cg.add(var.add_file(data_lambda, file[CONF_ID]))
-
-# Additional actions and automation registrations remain the same as in the previous version
 
 
 
