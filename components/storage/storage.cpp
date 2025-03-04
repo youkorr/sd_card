@@ -1,102 +1,126 @@
 #include "storage.h"
 #include "esphome/core/log.h"
 #include "esphome/components/media_player/media_player.h"
+#include "esp_vfs_fat.h"
+#include "driver/sdmmc_host.h"
+#include "driver/sdmmc_defs.h"
+#include "sdmmc_cmd.h"
+#include <sys/stat.h>
+#include <dirent.h>
 
 namespace esphome {
 namespace storage {
 
 static const char *const TAG = "storage";
 
+bool file_exists(const std::string &path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
 void StorageComponent::play_media(const std::string &media_file) {
-  ESP_LOGD(TAG, "Playing media file: %s", media_file.c_str());
+    ESP_LOGD(TAG, "Playing media file: %s", media_file.c_str());
 
-  // Construire le chemin de base du fichier sur la carte SD
-  std::string base_path = "/sd/" + media_file;
+    std::string base_path = "/sd/" + media_file;
+    std::vector<std::string> supported_extensions = {".mp3", ".flac"};
+    bool file_exists = false;
+    std::string found_file_path;
 
-  // Liste des extensions supportées
-  std::vector<std::string> supported_extensions = {".mp3", ".flac"};
-
-  // Vérifier l'existence du fichier (simulation)
-  bool file_exists = false;
-  std::string found_file_path;
-
-  for (const auto &ext : supported_extensions) {
-    std::string full_path = base_path + ext;
-    // Ici, vous devrez implémenter une vérification réelle de l'existence du fichier
-    // Par exemple, en utilisant une bibliothèque SD spécifique à votre plateforme
-    ESP_LOGD(TAG, "Checking file: %s", full_path.c_str());
-    
-    // Simulation d'existence de fichier
-    if (full_path == "/sd/timer_sound.mp3") {
-      file_exists = true;
-      found_file_path = full_path;
-      break;
+    for (const auto &ext : supported_extensions) {
+        std::string full_path = base_path + ext;
+        ESP_LOGD(TAG, "Checking file: %s", full_path.c_str());
+        
+        if (file_exists(full_path)) {
+            file_exists = true;
+            found_file_path = full_path;
+            break;
+        }
     }
-  }
 
-  if (file_exists) {
-    // Trouver le média player
-    auto *media_player = media_player::MediaPlayer::find_by_name("box3");
-    
-    if (media_player) {
-      // Définir l'URL du fichier sur la carte SD
-      media_player->set_media_url(found_file_path);
-      
-      // Jouer le média
-      media_player->play();
-      
-      ESP_LOGD(TAG, "Playing media from SD card: %s", found_file_path.c_str());
+    if (file_exists) {
+        auto *media_player = media_player::MediaPlayer::find_by_name("box3");
+        if (media_player) {
+            media_player->set_media_url(found_file_path);
+            media_player->play();
+            ESP_LOGD(TAG, "Playing media from SD card: %s", found_file_path.c_str());
+        } else {
+            ESP_LOGE(TAG, "Media player 'box3' not found");
+        }
     } else {
-      ESP_LOGE(TAG, "Media player 'box3' not found");
+        ESP_LOGE(TAG, "Media file not found on SD card: %s", base_path.c_str());
     }
-  } else {
-    ESP_LOGE(TAG, "Media file not found on SD card: %s", base_path.c_str());
-  }
 }
 
 void StorageComponent::setup() {
-  ESP_LOGD(TAG, "Setting up storage component");
+    ESP_LOGD(TAG, "Setting up storage component");
 
-  if (platform_ == "flash") {
-    setup_flash();
-  } else if (platform_ == "inline") {
-    setup_inline();
-  } else if (platform_ == "sd_card") {
-    setup_sd_card();
-  }
+    if (platform_ == "flash") {
+        setup_flash();
+    } else if (platform_ == "inline") {
+        setup_inline();
+    } else if (platform_ == "sd_card") {
+        setup_sd_card();
+    }
 }
 
 void StorageComponent::setup_sd_card() {
-  ESP_LOGD(TAG, "Setting up SD card storage...");
-  
-  // Simulation de listage de fichiers
-  std::vector<std::string> files = {
-    "timer_sound.mp3",
-    "timer_sound.flac",
-    "alarm_sound.mp3"
-  };
+    ESP_LOGD(TAG, "Setting up SD card storage...");
 
-  for (const auto &file : files) {
-    ESP_LOGD(TAG, "Found file on SD card: %s", file.c_str());
-  }
+    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
+        .format_if_mount_failed = false,
+        .max_files = 5,
+        .allocation_unit_size = 16 * 1024
+    };
+
+    sdmmc_card_t *card;
+    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sd", &host, &slot_config, &mount_config, &card);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Échec du montage de la carte SD. Vérifiez le formatage (FAT32).");
+        } else {
+            ESP_LOGE(TAG, "Échec de l'initialisation de la carte SD (erreur : %s)", esp_err_to_name(ret));
+        }
+        return;
+    }
+
+    ESP_LOGD(TAG, "Carte SD initialisée avec succès !");
+    list_files("/sd");
+}
+
+void StorageComponent::list_files(const std::string &path) {
+    DIR *dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        ESP_LOGE(TAG, "Impossible d'ouvrir le répertoire : %s", path.c_str());
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        ESP_LOGD(TAG, "Fichier trouvé : %s", entry->d_name);
+    }
+
+    closedir(dir);
 }
 
 void StorageComponent::setup_flash() {
-  for (const auto &file : files_) {
-    ESP_LOGD(TAG, "Setting up flash storage: %s -> %s", 
-             file.first.c_str(), file.second.c_str());
-  }
+    for (const auto &file : files_) {
+        ESP_LOGD(TAG, "Setting up flash storage: %s -> %s", 
+                 file.first.c_str(), file.second.c_str());
+    }
 }
 
 void StorageComponent::setup_inline() {
-  for (const auto &file : files_) {
-    ESP_LOGD(TAG, "Setting up inline storage: %s -> %s", 
-             file.first.c_str(), file.second.c_str());
-  }
+    for (const auto &file : files_) {
+        ESP_LOGD(TAG, "Setting up inline storage: %s -> %s", 
+                 file.first.c_str(), file.second.c_str());
+    }
 }
 
 void StorageComponent::load_image(const std::string &image_id) {
-  ESP_LOGD(TAG, "Loading image: %s", image_id.c_str());
+    ESP_LOGD(TAG, "Loading image: %s", image_id.c_str());
 }
 
 }  // namespace storage
