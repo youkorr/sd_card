@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
+from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES, CONF_MEDIA_PLAYER_ID
 from esphome import automation
 
 DEPENDENCIES = []
@@ -58,6 +58,7 @@ STORAGE_SCHEMA = cv.Schema({
         cv.Required("file"): cv.string,
         cv.Required("id"): cv.string,
     }),
+    cv.Optional(CONF_MEDIA_PLAYER_ID): cv.use_id(cg.MediaPlayer),  # Nouvelle propriété
 }).extend(cv.COMPONENT_SCHEMA)
 
 CONFIG_SCHEMA = cv.All(
@@ -77,6 +78,10 @@ def to_code(config):
         if CONF_IMAGES in conf:
             for image in conf[CONF_IMAGES]:
                 cg.add(var.add_image(image["file"], image["id"]))
+        
+        if CONF_MEDIA_PLAYER_ID in conf:  # Configurer l'ID du lecteur média
+            media_player = yield cg.get_variable(conf[CONF_MEDIA_PLAYER_ID])
+            cg.add(var.set_media_player(media_player))
 
 
 
