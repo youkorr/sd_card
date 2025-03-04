@@ -1,7 +1,7 @@
 #include "storage.h"
 #include "esphome/core/log.h"
 #include "esphome/components/media_player/media_player.h"
-
+#include "SD.h"
 
 namespace esphome {
 namespace storage {
