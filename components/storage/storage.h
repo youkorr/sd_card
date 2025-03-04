@@ -1,6 +1,5 @@
 #pragma once
 #include "esphome.h"
-#include "esp32/SD_MMC.h"  // Utiliser SD_MMC pour ESP32-S3
 
 namespace esphome {
 namespace storage {
@@ -20,7 +19,7 @@ class StorageComponent : public Component {
     for (const auto &file : files_) {
       if (file.second == media_file) {
         ESP_LOGD("storage", "Playing media: %s", file.first.c_str());
-        // Ajoutez ici la logique pour jouer le fichier audio
+        // Logique pour jouer le fichier audio
         break;
       }
     }
@@ -30,7 +29,7 @@ class StorageComponent : public Component {
     for (const auto &image : images_) {
       if (image.second == image_id) {
         ESP_LOGD("storage", "Loading image: %s", image.first.c_str());
-        // Ajoutez ici la logique pour accéder à l'image
+        // Logique pour accéder à l'image
         break;
       }
     }
@@ -77,6 +76,7 @@ class StorageComponent : public Component {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
