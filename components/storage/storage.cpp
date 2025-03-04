@@ -22,9 +22,7 @@ void StorageComponent::setup() {
 void StorageComponent::setup_sd_card() {
   ESP_LOGD(TAG, "Setting up SD card storage");
   for (const auto &file : files_) {
-    // Convert vector to string
-    auto data_vec = file.first();
-    std::string data_str(data_vec.begin(), data_vec.end());
+    std::string data_str = file.first();
     
     ESP_LOGD(TAG, "SD Card file - Size: %d, ID: %s", 
              data_str.size(), file.second.c_str());
@@ -34,9 +32,7 @@ void StorageComponent::setup_sd_card() {
 void StorageComponent::setup_flash() {
   ESP_LOGD(TAG, "Setting up Flash storage");
   for (const auto &file : files_) {
-    // Convert vector to string
-    auto data_vec = file.first();
-    std::string data_str(data_vec.begin(), data_vec.end());
+    std::string data_str = file.first();
     
     ESP_LOGD(TAG, "Flash file - Size: %d, ID: %s", 
              data_str.size(), file.second.c_str());
@@ -46,9 +42,7 @@ void StorageComponent::setup_flash() {
 void StorageComponent::setup_inline() {
   ESP_LOGD(TAG, "Setting up Inline storage");
   for (const auto &file : files_) {
-    // Convert vector to string
-    auto data_vec = file.first();
-    std::string data_str(data_vec.begin(), data_vec.end());
+    std::string data_str = file.first();
     
     ESP_LOGD(TAG, "Inline file - Size: %d, ID: %s", 
              data_str.size(), file.second.c_str());
