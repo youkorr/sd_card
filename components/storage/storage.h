@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
+#include "esphome/components/media_player/media_player.h"
 
 namespace esphome {
 namespace storage {
@@ -31,24 +32,30 @@ class StorageComponent : public esphome::Component {
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
-// Modified to be a template class
 template<typename... Ts>
 class PlayMediaAction : public esphome::Action<Ts...> {
  public:
-  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
+  PlayMediaAction(StorageComponent *storage, media_player::MediaPlayer *media_player)
+    : storage_(storage), media_player_(media_player) {}
+
   void set_media_file(const std::string &media_file) { media_file_ = media_file; }
+
   void play() override {
-    if (storage_ && !media_file_.empty()) {
+    if (storage_ && media_player_ && !media_file_.empty()) {
+      ESP_LOGD("storage", "Playing media file: %s", media_file_.c_str());
       storage_->play_media(media_file_);
+      media_player_->play();
+    } else {
+      ESP_LOGW("storage", "Unable to play media: storage, media player, or file name is missing");
     }
   }
 
  private:
   StorageComponent *storage_{nullptr};
+  media_player::MediaPlayer *media_player_{nullptr};
   std::string media_file_;
 };
 
-// Similarly modify LoadImageAction
 template<typename... Ts>
 class LoadImageAction : public esphome::Action<Ts...> {
  public:
@@ -67,6 +74,7 @@ class LoadImageAction : public esphome::Action<Ts...> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
