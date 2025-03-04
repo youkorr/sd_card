@@ -74,3 +74,4 @@ class LoadImageAction : public esphome::Action<> {
 
 
 
+
