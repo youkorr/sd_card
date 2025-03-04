@@ -35,24 +35,22 @@ class StorageComponent : public esphome::Component {
 template<typename... Ts>
 class PlayMediaAction : public esphome::Action<Ts...> {
  public:
-  PlayMediaAction(StorageComponent *storage, media_player::MediaPlayer *media_player)
-    : storage_(storage), media_player_(media_player) {}
+  PlayMediaAction(StorageComponent *storage)
+    : storage_(storage) {}
 
   void set_media_file(const std::string &media_file) { media_file_ = media_file; }
 
   void play() override {
-    if (storage_ && media_player_ && !media_file_.empty()) {
+    if (storage_ && !media_file_.empty()) {
       ESP_LOGD("storage", "Playing media file: %s", media_file_.c_str());
       storage_->play_media(media_file_);
-      media_player_->play();
     } else {
-      ESP_LOGW("storage", "Unable to play media: storage, media player, or file name is missing");
+      ESP_LOGW("storage", "Unable to play media: storage or file name is missing");
     }
   }
 
  private:
   StorageComponent *storage_{nullptr};
-  media_player::MediaPlayer *media_player_{nullptr};
   std::string media_file_;
 };
 
@@ -74,6 +72,7 @@ class LoadImageAction : public esphome::Action<Ts...> {
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
