@@ -58,7 +58,7 @@ def to_code(config):
                 data_lambda = yield cg.process_lambda(
                     file[CONF_DATA], 
                     [],  # No arguments
-                    return_type=cg.std_vector_uint8
+                    return_type=cg.std_vector(cg.uint8)
                 )
                 
                 # Add file with processed lambda
