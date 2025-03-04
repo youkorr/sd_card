@@ -24,7 +24,7 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
 
 # Enregistrement des actions
 @automation.register_action(
-    "media_player.play_media",
+    "storage_sd_play.media",
     storage_ns.class_("PlayMediaAction"),
     STORAGE_PLAY_MEDIA_SCHEMA,
 )
