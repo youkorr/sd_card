@@ -8,6 +8,7 @@ CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
 CONF_IMAGES = "images"
+
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
@@ -25,25 +26,23 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
 # Enregistrement des actions
 @automation.register_action(
     "storage_sd_play.media",
-    storage_ns.class_("PlayMediaAction", cg.Component, cg.Component),
+    storage_ns.class_("PlayMediaAction", cg.Action),
     STORAGE_PLAY_MEDIA_SCHEMA,
 )
 def storage_play_media_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
     storage = yield cg.get_variable(config["storage_id"])
-    cg.add(var.set_storage(storage))
+    var = cg.new_Pvariable(action_id, template_arg, storage)
     cg.add(var.set_media_file(config["media_file"]))
     yield var
 
 @automation.register_action(
     "storage.load_image",
-    storage_ns.class_("LoadImageAction", cg.Component, cg.Component),
+    storage_ns.class_("LoadImageAction", cg.Action),
     STORAGE_LOAD_IMAGE_SCHEMA,
 )
 def storage_load_image_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
     storage = yield cg.get_variable(config["storage_id"])
-    cg.add(var.set_storage(storage))
+    var = cg.new_Pvariable(action_id, template_arg, storage)
     cg.add(var.set_image_id(config["image_id"]))
     yield var
 
