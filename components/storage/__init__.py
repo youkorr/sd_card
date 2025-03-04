@@ -25,7 +25,7 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
 # Enregistrement des actions
 @automation.register_action(
     "storage_sd_play.media",
-    storage_ns.class_("PlayMediaAction", cg.Component),
+    storage_ns.class_("PlayMediaAction", cg.Component, cg.Component),
     STORAGE_PLAY_MEDIA_SCHEMA,
 )
 def storage_play_media_to_code(config, action_id, template_arg, args):
@@ -37,7 +37,7 @@ def storage_play_media_to_code(config, action_id, template_arg, args):
 
 @automation.register_action(
     "storage.load_image",
-    storage_ns.class_("LoadImageAction", cg.Component),
+    storage_ns.class_("LoadImageAction", cg.Component, cg.Component),
     STORAGE_LOAD_IMAGE_SCHEMA,
 )
 def storage_load_image_to_code(config, action_id, template_arg, args):
@@ -78,4 +78,5 @@ def to_code(config):
         if CONF_IMAGES in conf:
             for image in conf[CONF_IMAGES]:
                 cg.add(var.add_image(image["file"], image["id"]))
+
 
