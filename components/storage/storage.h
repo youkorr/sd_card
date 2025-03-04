@@ -31,7 +31,9 @@ class StorageComponent : public esphome::Component {
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
-class PlayMediaAction : public esphome::Action<> {
+// Modified to be a template class
+template<typename... Ts>
+class PlayMediaAction : public esphome::Action<Ts...> {
  public:
   explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
   void set_media_file(const std::string &media_file) { media_file_ = media_file; }
@@ -46,7 +48,9 @@ class PlayMediaAction : public esphome::Action<> {
   std::string media_file_;
 };
 
-class LoadImageAction : public esphome::Action<> {
+// Similarly modify LoadImageAction
+template<typename... Ts>
+class LoadImageAction : public esphome::Action<Ts...> {
  public:
   explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
