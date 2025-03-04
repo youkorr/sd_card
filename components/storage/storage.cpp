@@ -3,48 +3,47 @@
 namespace esphome {
 namespace storage {
 
-static const char *const TAG = "sd_card_player";
+static const char *const TAG = "media_player";
 
-void SdCardPlayerComponent::setup() {
-  ESP_LOGD(TAG, "Initializing SD Card Player");
+void MediaPlayerComponent::setup() {
+  ESP_LOGD(TAG, "Initializing Media Player (Platform: %s)", platform_.c_str());
   
   // Log available files
   for (const auto &file : files_) {
-    auto data_vec = file.first();
+    auto data_vec = file.second();
     ESP_LOGD(TAG, "Available File - ID: %s, Size: %d bytes", 
-             file.second.c_str(), data_vec.size());
+             file.first.c_str(), data_vec.size());
   }
 }
 
-void SdCardPlayerComponent::loop() {
+void MediaPlayerComponent::loop() {
   // Placeholder for any ongoing playback management
   if (is_playing_) {
     // Add any necessary playback monitoring logic
   }
 }
 
-void SdCardPlayerComponent::play_file(const std::string &id) {
+void MediaPlayerComponent::play_file(const std::string &id) {
   // Find the file
-  for (const auto &file : files_) {
-    if (file.second == id) {
-      auto data = file.first();
-      
-      // Log playback start
-      ESP_LOGD(TAG, "Starting playback of file: %s (Size: %d bytes)", 
-               id.c_str(), data.size());
-      
-      // Set playback state
-      current_file_id_ = id;
-      is_playing_ = true;
-      
-      // TODO: Implement actual audio playback logic
-      // This might involve:
-      // - Sending data to an audio DAC
-      // - Using I2S or other audio interfaces
-      // - Interfacing with specific audio playback hardware
-      
-      return;
-    }
+  auto it = files_.find(id);
+  if (it != files_.end()) {
+    auto data = it->second();
+    
+    // Log playback start
+    ESP_LOGD(TAG, "Starting playback of file: %s (Size: %d bytes)", 
+             id.c_str(), data.size());
+    
+    // Set playback state
+    current_file_id_ = id;
+    is_playing_ = true;
+    
+    // TODO: Implement actual audio playback logic
+    // This might involve:
+    // - Sending data to an audio DAC
+    // - Using I2S or other audio interfaces
+    // - Interfacing with specific audio playback hardware
+    
+    return;
   }
   
   // File not found
@@ -52,7 +51,7 @@ void SdCardPlayerComponent::play_file(const std::string &id) {
   is_playing_ = false;
 }
 
-void SdCardPlayerComponent::stop_playback() {
+void MediaPlayerComponent::stop_playback() {
   if (is_playing_) {
     ESP_LOGD(TAG, "Stopping playback of file: %s", current_file_id_.c_str());
     
