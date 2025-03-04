@@ -20,10 +20,10 @@ FILE_SCHEMA = cv.Schema({
 
 # Schema for sound configuration
 SOUND_SCHEMA = cv.Schema({
-    cv.Required(CONF_ID): cv.declare_id(SoundComponent),
+    cv.Required(CONF_ID): cv.string,
     cv.Required(CONF_PLATFORM): cv.one_of("sound", lower=True),
     cv.Optional(CONF_FILES, default=[]): cv.ensure_list(FILE_SCHEMA),
-}).extend(cv.COMPONENT_SCHEMA)
+})
 
 # Configuration schema
 CONFIG_SCHEMA = cv.Schema({
@@ -32,11 +32,14 @@ CONFIG_SCHEMA = cv.Schema({
 
 def to_code(config):
     for conf in config.get(CONF_STORAGE, []):
+        # Declare the component variable
         var = cg.new_Pvariable(conf[CONF_ID])
         yield cg.register_component(var, conf)
         
+        # Set platform
         cg.add(var.set_platform(conf[CONF_PLATFORM]))
         
+        # Process files
         for file in conf.get(CONF_FILES, []):
             # Process lambda for data
             data_lambda = yield cg.process_lambda(
