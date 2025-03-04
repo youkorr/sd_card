@@ -31,10 +31,9 @@ class StorageComponent : public esphome::Component {
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
-template<typename... Ts>
-class PlayMediaAction : public esphome::Action<Ts...> {
+class PlayMediaAction : public esphome::Action<> {
  public:
-  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
   void set_media_file(const std::string &media_file) { media_file_ = media_file; }
   void play() override {
     if (storage_ && !media_file_.empty()) {
@@ -47,10 +46,9 @@ class PlayMediaAction : public esphome::Action<Ts...> {
   std::string media_file_;
 };
 
-template<typename... Ts>
-class LoadImageAction : public esphome::Action<Ts...> {
+class LoadImageAction : public esphome::Action<> {
  public:
-  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
   void set_image_id(const std::string &image_id) { image_id_ = image_id; }
   void play() override {
     if (storage_ && !image_id_.empty()) {
