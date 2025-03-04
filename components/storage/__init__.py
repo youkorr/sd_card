@@ -16,7 +16,7 @@ StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 # Schéma pour les actions
 STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
-    cv.Required(CONF_MEDIA_PLAYER_ID): cv.use_id(media_player.MediaPlayerComponent),
+    cv.Required(CONF_MEDIA_PLAYER_ID): cv.use_id(cv.COMPONENT_SCHEMA),
     cv.Required("storage_id"): cv.use_id(StorageComponent),
     cv.Required("media_file"): cv.string,
 })
@@ -35,7 +35,8 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
 async def storage_play_media_to_code(config, action_id, template_arg, args):
     media_player = await cg.get_variable(config[CONF_MEDIA_PLAYER_ID])
     storage = await cg.get_variable(config["storage_id"])
-    var = cg.new_Pvariable(action_id, template_arg, storage, media_player)
+    var = cg.new_Pvariable(action_id, template_arg, storage)
+    cg.add(var.set_media_player(media_player))
     cg.add(var.set_media_file(config["media_file"]))
     return var
 
@@ -81,6 +82,7 @@ async def to_code(config):
         if CONF_IMAGES in conf:
             for image in conf[CONF_IMAGES]:
                 cg.add(var.add_image(image["file"], image["id"]))
+
 
 
 
