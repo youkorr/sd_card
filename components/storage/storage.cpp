@@ -35,22 +35,26 @@ void StorageComponent::setup_inline() {
   }
 }
 
-// Implementation of play_media method
 void StorageComponent::play_media(const std::string &media_file) {
-  ESP_LOGD(TAG, "Playing media file: %s", media_file.c_str());
-  // Placeholder for media playback logic
-  // You might want to add actual implementation based on your specific requirements
+  ESP_LOGD(TAG, "Preparing to play media file: %s", media_file.c_str());
+  // Here you would implement the logic to prepare the media file for playback
+  // This might involve locating the file in your storage system
+  // and preparing it for the media player component to use
 }
 
-// Implementation of load_image method
 void StorageComponent::load_image(const std::string &image_id) {
   ESP_LOGD(TAG, "Loading image: %s", image_id.c_str());
-  // Placeholder for image loading logic
-  // You might want to add actual implementation based on your specific requirements
+  // Implement the logic to load and display the image
+  // This might involve reading the image file from storage
+  // and sending it to a display component
 }
+
+// You don't need to implement PlayMediaAction or LoadImageAction here
+// as they are template classes defined in the header file
 
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
