@@ -3,7 +3,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
 from esphome import automation
 
-DEPENDENCIES = ["sd_card"]  # Ajout de la dépendance SD card
+DEPENDENCIES = ["sd_card"]
 CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
@@ -81,6 +81,7 @@ async def to_code(config):
         if CONF_IMAGES in conf:
             for image in conf[CONF_IMAGES]:
                 cg.add(var.add_image(image["file"], image["id"]))
+
 
 
 
