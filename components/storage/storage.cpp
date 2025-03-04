@@ -1,5 +1,5 @@
 #include "storage.h"
-#include "esp32/SD_MMC.h"  // Utiliser SD_MMC pour ESP32-S3
+
 
 namespace esphome {
 namespace storage {
