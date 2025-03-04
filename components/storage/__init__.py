@@ -2,18 +2,21 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
 from esphome import automation
+from esphome.components import media_player
 
 DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
 CONF_IMAGES = "images"
+CONF_MEDIA_PLAYER_ID = "media_player_id"
 
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
 # Schéma pour les actions
 STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
+    cv.Required(CONF_MEDIA_PLAYER_ID): cv.use_id(media_player.MediaPlayerComponent),
     cv.Required("storage_id"): cv.use_id(StorageComponent),
     cv.Required("media_file"): cv.string,
 })
@@ -29,22 +32,23 @@ STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
     storage_ns.class_("PlayMediaAction"),
     STORAGE_PLAY_MEDIA_SCHEMA,
 )
-def storage_play_media_to_code(config, action_id, template_arg, args):
-    storage = yield cg.get_variable(config["storage_id"])
-    var = cg.new_Pvariable(action_id, template_arg, storage)
+async def storage_play_media_to_code(config, action_id, template_arg, args):
+    media_player = await cg.get_variable(config[CONF_MEDIA_PLAYER_ID])
+    storage = await cg.get_variable(config["storage_id"])
+    var = cg.new_Pvariable(action_id, template_arg, storage, media_player)
     cg.add(var.set_media_file(config["media_file"]))
-    yield var
+    return var
 
 @automation.register_action(
     "storage.load_image",
     storage_ns.class_("LoadImageAction", automation.Action),
     STORAGE_LOAD_IMAGE_SCHEMA,
 )
-def storage_load_image_to_code(config, action_id, template_arg, args):
-    storage = yield cg.get_variable(config["storage_id"])
+async def storage_load_image_to_code(config, action_id, template_arg, args):
+    storage = await cg.get_variable(config["storage_id"])
     var = cg.new_Pvariable(action_id, template_arg, storage)
     cg.add(var.set_image_id(config["image_id"]))
-    yield var
+    return var
 
 # Schéma pour le stockage
 STORAGE_SCHEMA = cv.Schema({
@@ -64,10 +68,10 @@ CONFIG_SCHEMA = cv.All(
     cv.ensure_list(STORAGE_SCHEMA),
 )
 
-def to_code(config):
+async def to_code(config):
     for conf in config:
         var = cg.new_Pvariable(conf[CONF_ID])
-        yield cg.register_component(var, conf)
+        await cg.register_component(var, conf)
         
         cg.add(var.set_platform(conf[CONF_PLATFORM]))
         
@@ -77,6 +81,7 @@ def to_code(config):
         if CONF_IMAGES in conf:
             for image in conf[CONF_IMAGES]:
                 cg.add(var.add_image(image["file"], image["id"]))
+
 
 
 
