@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome.h"
+#include "esp32/SD_MMC.h"  // Utiliser SD_MMC pour ESP32-S3
 
 namespace esphome {
 namespace storage {
@@ -40,6 +41,8 @@ class StorageComponent : public Component {
       setup_flash();
     } else if (platform_ == "inline") {
       setup_inline();
+    } else if (platform_ == "sd_card") {
+      setup_sd_card();  // Appel de la méthode pour initialiser la carte SD
     }
   }
 
@@ -47,6 +50,15 @@ class StorageComponent : public Component {
   std::string platform_;
   std::vector<std::pair<std::string, std::string>> files_;
   std::vector<std::pair<std::string, std::string>> images_;
+
+  // Nouvelle méthode pour gérer l'initialisation de la carte SD
+  void setup_sd_card() {
+    if (!SD_MMC.begin("/sdcard", true)) {  // "/sdcard" est le chemin de montage de la carte SD
+      ESP_LOGE("storage", "Card failed, or not present");
+      return;  // Si la carte SD ne peut pas être initialisée, on retourne immédiatement
+    }
+    ESP_LOGD("storage", "Card mounted successfully");
+  }
 
   void setup_flash() {
     for (const auto &file : files_) {
@@ -63,53 +75,9 @@ class StorageComponent : public Component {
   }
 };
 
-// Déclaration des classes d'action compatibles avec ESPHome
-template<typename... Ts>
-class PlayMediaAction : public Action<Ts...> {
- public:
-  PlayMediaAction() : storage_(nullptr) {}  // Constructeur par défaut
-  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
-
-  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
-  void set_media_file(const std::string &media_file) { media_file_ = media_file; }
-
-  void play(Ts... x) override {
-    if (storage_ != nullptr) {
-      storage_->play_media(media_file_);
-    } else {
-      ESP_LOGE("storage", "Storage component not set for PlayMediaAction");
-    }
-  }
-
- protected:
-  StorageComponent *storage_;
-  std::string media_file_;
-};
-
-template<typename... Ts>
-class LoadImageAction : public Action<Ts...> {
- public:
-  LoadImageAction() : storage_(nullptr) {}  // Constructeur par défaut
-  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
-
-  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
-  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-
-  void play(Ts... x) override {
-    if (storage_ != nullptr) {
-      storage_->load_image(image_id_);
-    } else {
-      ESP_LOGE("storage", "Storage component not set for LoadImageAction");
-    }
-  }
-
- protected:
-  StorageComponent *storage_;
-  std::string image_id_;
-};
-
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
