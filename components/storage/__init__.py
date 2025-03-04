@@ -12,6 +12,16 @@ storage_ns = cg.esphome_ns.namespace('storage')
 MediaPlayerComponent = storage_ns.class_('MediaPlayerComponent', cg.Component)
 
 # Schema for storage configuration
+def validate_unique_media_player_id(config):
+    # Collect all media player IDs
+    media_player_ids = []
+    for conf in config:
+        media_player_id = conf[CONF_ID]
+        if media_player_id in media_player_ids:
+            raise cv.Invalid(f"Duplicate media player ID: {media_player_id}")
+        media_player_ids.append(media_player_id)
+    return config
+
 STORAGE_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(MediaPlayerComponent),
     cv.Required(CONF_PLATFORM): cv.one_of("media_player", lower=True),
@@ -23,6 +33,7 @@ STORAGE_SCHEMA = cv.Schema({
 
 CONFIG_SCHEMA = cv.All(
     cv.ensure_list(STORAGE_SCHEMA),
+    validate_unique_media_player_id
 )
 
 def to_code(config):
