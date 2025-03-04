@@ -13,7 +13,7 @@ namespace storage {
 
 static const char *const TAG = "storage";
 
-bool file_exists(const std::string &path) {
+bool StorageComponent::file_exists(const std::string &path) {
     struct stat buffer;
     return (stat(path.c_str(), &buffer) == 0);
 }
@@ -23,7 +23,7 @@ void StorageComponent::play_media(const std::string &media_file) {
 
     std::string base_path = "/sd/" + media_file;
     std::vector<std::string> supported_extensions = {".mp3", ".flac"};
-    bool file_exists = false;
+    bool file_found = false;
     std::string found_file_path;
 
     for (const auto &ext : supported_extensions) {
@@ -31,14 +31,14 @@ void StorageComponent::play_media(const std::string &media_file) {
         ESP_LOGD(TAG, "Checking file: %s", full_path.c_str());
         
         if (file_exists(full_path)) {
-            file_exists = true;
+            file_found = true;
             found_file_path = full_path;
             break;
         }
     }
 
-    if (file_exists) {
-        auto *media_player = media_player::MediaPlayer::find_by_name("box3");
+    if (file_found) {
+        auto *media_player = esphome::media_player::MediaPlayer::get_component("box3");
         if (media_player) {
             media_player->set_media_url(found_file_path);
             media_player->play();
@@ -48,18 +48,6 @@ void StorageComponent::play_media(const std::string &media_file) {
         }
     } else {
         ESP_LOGE(TAG, "Media file not found on SD card: %s", base_path.c_str());
-    }
-}
-
-void StorageComponent::setup() {
-    ESP_LOGD(TAG, "Setting up storage component");
-
-    if (platform_ == "flash") {
-        setup_flash();
-    } else if (platform_ == "inline") {
-        setup_inline();
-    } else if (platform_ == "sd_card") {
-        setup_sd_card();
     }
 }
 
@@ -105,24 +93,7 @@ void StorageComponent::list_files(const std::string &path) {
     closedir(dir);
 }
 
-void StorageComponent::setup_flash() {
-    for (const auto &file : files_) {
-        ESP_LOGD(TAG, "Setting up flash storage: %s -> %s", 
-                 file.first.c_str(), file.second.c_str());
-    }
-}
-
-void StorageComponent::setup_inline() {
-    for (const auto &file : files_) {
-        ESP_LOGD(TAG, "Setting up inline storage: %s -> %s", 
-                 file.first.c_str(), file.second.c_str());
-    }
-}
-
-void StorageComponent::load_image(const std::string &image_id) {
-    ESP_LOGD(TAG, "Loading image: %s", image_id.c_str());
-}
-
+// Autres méthodes...
 }  // namespace storage
 }  // namespace esphome
 
