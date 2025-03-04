@@ -10,7 +10,7 @@ CONF_STORAGE = "storage"
 CONF_DATA = "data"
 
 storage_ns = cg.esphome_ns.namespace('storage')
-MediaPlayerComponent = storage_ns.class_('MediaPlayerComponent', cg.Component)
+SoundComponent = storage_ns.class_('SoundComponent', cg.Component)
 
 # Schema for individual file
 FILE_SCHEMA = cv.Schema({
@@ -18,16 +18,16 @@ FILE_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.string,
 })
 
-# Schema for media player configuration
-MEDIA_PLAYER_SCHEMA = cv.Schema({
-    cv.Required(CONF_ID): cv.declare_id(MediaPlayerComponent),
-    cv.Required(CONF_PLATFORM): cv.one_of("media_player", lower=True),
+# Schema for sound configuration
+SOUND_SCHEMA = cv.Schema({
+    cv.Required(CONF_ID): cv.declare_id(SoundComponent),
+    cv.Required(CONF_PLATFORM): cv.one_of("sound", lower=True),
     cv.Optional(CONF_FILES, default=[]): cv.ensure_list(FILE_SCHEMA),
-})
+}).extend(cv.COMPONENT_SCHEMA)
 
 # Configuration schema
 CONFIG_SCHEMA = cv.Schema({
-    cv.Optional(CONF_STORAGE): cv.ensure_list(MEDIA_PLAYER_SCHEMA)
+    cv.Optional(CONF_STORAGE): cv.ensure_list(SOUND_SCHEMA)
 })
 
 def to_code(config):
