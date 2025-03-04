@@ -4,23 +4,23 @@
 #include "esphome/core/log.h"
 #include <vector>
 #include <string>
+#include <map>
 
 namespace esphome {
 namespace storage {
 
-class SdCardPlayerComponent : public esphome::Component {
+class MediaPlayerComponent : public esphome::Component {
  public:
   void set_platform(const std::string &platform) { platform_ = platform; }
   
   void add_file(std::function<std::vector<uint8_t>()> source_func, const std::string &id) {
-    files_.push_back({source_func, id});
+    files_[id] = source_func;
   }
   
   std::vector<uint8_t> read_file(const std::string &id) {
-    for (const auto &file : files_) {
-      if (file.second == id) {
-        return file.first();
-      }
+    auto it = files_.find(id);
+    if (it != files_.end()) {
+      return it->second();
     }
     return {};
   }
@@ -31,9 +31,12 @@ class SdCardPlayerComponent : public esphome::Component {
   void setup() override;
   void loop() override;
 
+  bool is_playing() const { return is_playing_; }
+  std::string current_file() const { return current_file_id_; }
+
  private:
   std::string platform_;
-  std::vector<std::pair<std::function<std::vector<uint8_t>()>, std::string>> files_;
+  std::map<std::string, std::function<std::vector<uint8_t>()>> files_;
   
   // Playback state
   std::string current_file_id_;
