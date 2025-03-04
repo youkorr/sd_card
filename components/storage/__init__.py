@@ -1,86 +1,51 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
+from esphome.components import sd_card
+from esphome.const import CONF_ID, CONF_FILES
 from esphome import automation
 
 DEPENDENCIES = ["sd_card"]
 CODEOWNERS = ["@votre_nom"]
 
-CONF_STORAGE = "storage"
-CONF_IMAGES = "images"
+CONF_SD_CARD = "sd_card"
 
-storage_ns = cg.esphome_ns.namespace('storage')
-sd_card = storage_ns.class_('sd_card', cg.Component)
-PlayMediaAction = storage_ns.class_('PlayMediaAction', automation.Action)
-LoadImageAction = storage_ns.class_('LoadImageAction', automation.Action)
+sd_card_ns = cg.esphome_ns.namespace('sd_card')
+SDCardComponent = sd_card_ns.class_('SDCardComponent', cg.Component)
+PlayMediaAction = sd_card_ns.class_('PlayMediaAction', automation.Action)
 
 # Schéma pour les actions
 STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
-    cv.Required("storage_id"): cv.use_id(sd_card),
+    cv.Required("sd_card_id"): cv.use_id(SDCardComponent),
     cv.Required("media_file"): cv.string,
-})
-
-STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
-    cv.Required("storage_id"): cv.use_id(sd_card),
-    cv.Required("image_id"): cv.string,
 })
 
 # Enregistrement des actions
 @automation.register_action(
-    "storage.play_media",
+    "sd_card.play_media",
     PlayMediaAction,
     STORAGE_PLAY_MEDIA_SCHEMA,
 )
-async def storage_play_media_to_code(config, action_id, template_arg, args):
+async def sd_card_play_media_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
-    storage = await cg.get_variable(config["storage_id"])
-    cg.add(var.set_storage(storage))
+    sd_card = await cg.get_variable(config["sd_card_id"])
+    cg.add(var.set_sd_card(sd_card))
     cg.add(var.set_media_file(config["media_file"]))
     return var
 
-@automation.register_action(
-    "storage.load_image",
-    LoadImageAction,
-    STORAGE_LOAD_IMAGE_SCHEMA,
-)
-async def storage_load_image_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
-    storage = await cg.get_variable(config["storage_id"])
-    cg.add(var.set_storage(storage))
-    cg.add(var.set_image_id(config["image_id"]))
-    return var
-
-# Schéma pour le stockage
-STORAGE_SCHEMA = cv.Schema({
-    cv.GenerateID(): cv.declare_id(sd_card),
-    cv.Required(CONF_PLATFORM): cv.one_of("flash", "inline", "sd_card", lower=True),
-    cv.Required(CONF_FILES): cv.ensure_list({
+# Configuration du composant SD Card
+CONFIG_SCHEMA = sd_card.CONFIG_SCHEMA.extend({
+    cv.Optional(CONF_FILES): cv.ensure_list({
         cv.Required("source"): cv.file_,
         cv.Required("id"): cv.string,
     }),
-    cv.Optional(CONF_IMAGES): cv.ensure_list({
-        cv.Required("file"): cv.file_,
-        cv.Required("id"): cv.string,
-    }),
-}).extend(cv.COMPONENT_SCHEMA)
-
-CONFIG_SCHEMA = cv.All(
-    cv.ensure_list(STORAGE_SCHEMA),
-)
+})
 
 async def to_code(config):
-    for conf in config:
-        var = cg.new_Pvariable(conf[CONF_ID])
-        await cg.register_component(var, conf)
-        
-        cg.add(var.set_platform(conf[CONF_PLATFORM]))
-        
-        for file in conf[CONF_FILES]:
+    var = await sd_card.to_code(config)
+    if CONF_FILES in config:
+        for file in config[CONF_FILES]:
             cg.add(var.add_file(file["source"], file["id"]))
-        
-        if CONF_IMAGES in conf:
-            for image in conf[CONF_IMAGES]:
-                cg.add(var.add_image(image["file"], image["id"]))
+
 
 
 
