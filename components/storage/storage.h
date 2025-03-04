@@ -1,5 +1,7 @@
+
 #pragma once
 #include "esphome.h"
+#include "SD.h"
 
 namespace esphome {
 namespace storage {
@@ -19,7 +21,11 @@ class StorageComponent : public Component {
     for (const auto &file : files_) {
       if (file.second == media_file) {
         ESP_LOGD("storage", "Playing media: %s", file.first.c_str());
-        // Ajoutez ici la logique pour jouer le fichier audio
+        if (platform_ == "sd") {
+          play_media_from_sd(file.first);
+        } else {
+          // Logique existante pour les autres plateformes
+        }
         break;
       }
     }
@@ -29,7 +35,11 @@ class StorageComponent : public Component {
     for (const auto &image : images_) {
       if (image.second == image_id) {
         ESP_LOGD("storage", "Loading image: %s", image.first.c_str());
-        // Ajoutez ici la logique pour accéder à l'image
+        if (platform_ == "sd") {
+          load_image_from_sd(image.first);
+        } else {
+          // Logique existante pour les autres plateformes
+        }
         break;
       }
     }
@@ -40,6 +50,8 @@ class StorageComponent : public Component {
       setup_flash();
     } else if (platform_ == "inline") {
       setup_inline();
+    } else if (platform_ == "sd") {
+      setup_sd();
     }
   }
 
@@ -61,55 +73,50 @@ class StorageComponent : public Component {
                file.first.c_str(), file.second.c_str());
     }
   }
-};
 
-// Déclaration des classes d'action compatibles avec ESPHome
-template<typename... Ts>
-class PlayMediaAction : public Action<Ts...> {
- public:
-  PlayMediaAction() : storage_(nullptr) {}  // Constructeur par défaut
-  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
-
-  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
-  void set_media_file(const std::string &media_file) { media_file_ = media_file; }
-
-  void play(Ts... x) override {
-    if (storage_ != nullptr) {
-      storage_->play_media(media_file_);
-    } else {
-      ESP_LOGE("storage", "Storage component not set for PlayMediaAction");
+  void setup_sd() {
+    if (!SD.begin()) {
+      ESP_LOGE("storage", "SD Card initialization failed!");
+      return;
+    }
+    ESP_LOGI("storage", "SD Card initialized successfully");
+    
+    for (const auto &file : files_) {
+      if (SD.exists(file.first.c_str())) {
+        ESP_LOGD("storage", "File found on SD: %s", file.first.c_str());
+      } else {
+        ESP_LOGE("storage", "File not found on SD: %s", file.first.c_str());
+      }
     }
   }
 
- protected:
-  StorageComponent *storage_;
-  std::string media_file_;
-};
-
-template<typename... Ts>
-class LoadImageAction : public Action<Ts...> {
- public:
-  LoadImageAction() : storage_(nullptr) {}  // Constructeur par défaut
-  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
-
-  void set_storage(StorageComponent *storage) { storage_ = storage; }  // Méthode pour définir le stockage
-  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-
-  void play(Ts... x) override {
-    if (storage_ != nullptr) {
-      storage_->load_image(image_id_);
+  void play_media_from_sd(const std::string &file_path) {
+    if (SD.exists(file_path.c_str())) {
+      File file = SD.open(file_path.c_str());
+      if (file) {
+        ESP_LOGI("storage", "Playing file from SD: %s", file_path.c_str());
+        // Ajoutez ici la logique pour lire le fichier audio
+        file.close();
+      } else {
+        ESP_LOGE("storage", "Failed to open file: %s", file_path.c_str());
+      }
     } else {
-      ESP_LOGE("storage", "Storage component not set for LoadImageAction");
+      ESP_LOGE("storage", "File not found on SD: %s", file_path.c_str());
     }
   }
 
- protected:
-  StorageComponent *storage_;
-  std::string image_id_;
-};
-
-}  // namespace storage
-}  // namespace esphome
+  void load_image_from_sd(const std::string &file_path) {
+    if (SD.exists(file_path.c_str())) {
+      File file = SD.open(file_path.c_str());
+      if (file) {
+        ESP_LOGI("storage", "Loading image from SD: %s", file_path.c_str());
+        // Ajoutez ici la logique pour charger l'image
+        file.close();
+      } else {
+        ESP_LOGE("storage", "Failed to open image: %s", file_path.c_str());
+      }
+    } else {
+      ESP_LOGE("storage", "Image not found on SD
 
 
 
