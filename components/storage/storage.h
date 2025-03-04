@@ -1,10 +1,13 @@
 #pragma once
-#include "esphome.h"
+
+#include "esphome/core/component.h"
+#include "esphome/core/automation.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace storage {
 
-class StorageComponent : public Component {
+class StorageComponent : public esphome::Component {
  public:
   void set_platform(const std::string &platform) { platform_ = platform; }
   void add_file(const std::string &source, const std::string &id) {
@@ -13,85 +16,56 @@ class StorageComponent : public Component {
   void add_image(const std::string &file, const std::string &id) {
     images_.push_back({file, id});
   }
-  void play_media(const std::string &media_file) {
-    for (const auto &file : files_) {
-      if (file.second == media_file) {
-        ESP_LOGD("storage", "Playing media: %s", file.first.c_str());
-        // Logique pour jouer le fichier audio
-        break;
-      }
-    }
-  }
-  void load_image(const std::string &image_id) {
-    for (const auto &image : images_) {
-      if (image.second == image_id) {
-        ESP_LOGD("storage", "Loading image: %s", image.first.c_str());
-        // Logique pour accéder à l'image
-        break;
-      }
-    }
-  }
-  void setup() override;  // Déclaration de la méthode sans la définir ici
-  void setup_sd_card();   // Déclaration de la méthode sans la définir ici
+  void play_media(const std::string &media_file);
+  void load_image(const std::string &image_id);
+  void setup() override;
+  void setup_sd_card();
 
-  // Nouvelles actions d'automatisation
-  template<typename... Ts>
-  class PlayMediaAction : public Action<Ts...> {
-   public:
-    PlayMediaAction() = default;
-    
-    void set_storage(StorageComponent* storage) {
-      storage_ = storage;
-    }
-    
-    void set_media_file(const std::string& media_file) {
-      media_file_ = media_file;
-    }
-
-    void play() override {
-      if (storage_ && !media_file_.empty()) {
-        storage_->play_media(media_file_);
-      }
-    }
-
-   private:
-    StorageComponent* storage_ = nullptr;
-    std::string media_file_;
-  };
-
-  template<typename... Ts>
-  class LoadImageAction : public Action<Ts...> {
-   public:
-    LoadImageAction() = default;
-    
-    void set_storage(StorageComponent* storage) {
-      storage_ = storage;
-    }
-    
-    void set_image_id(const std::string& image_id) {
-      image_id_ = image_id;
-    }
-
-    void play() override {
-      if (storage_ && !image_id_.empty()) {
-        storage_->load_image(image_id_);
-      }
-    }
-
-   private:
-    StorageComponent* storage_ = nullptr;
-    std::string image_id_;
-  };
+ protected:
+  void setup_flash();
+  void setup_inline();
 
  private:
   std::string platform_;
   std::vector<std::pair<std::string, std::string>> files_;
   std::vector<std::pair<std::string, std::string>> images_;
-  void setup_flash();  // Définition des autres méthodes sans duplication
-  void setup_inline();
 };
+
+template<typename... Ts>
+class PlayMediaAction : public esphome::Action<Ts...> {
+ public:
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  void set_media_file(const std::string &media_file) { media_file_ = media_file; }
+  void play() override {
+    if (storage_ && !media_file_.empty()) {
+      storage_->play_media(media_file_);
+    }
+  }
+
+ private:
+  StorageComponent *storage_{nullptr};
+  std::string media_file_;
+};
+
+template<typename... Ts>
+class LoadImageAction : public esphome::Action<Ts...> {
+ public:
+  void set_storage(StorageComponent *storage) { storage_ = storage; }
+  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
+  void play() override {
+    if (storage_ && !image_id_.empty()) {
+      storage_->load_image(image_id_);
+    }
+  }
+
+ private:
+  StorageComponent *storage_{nullptr};
+  std::string image_id_;
+};
+
 }  // namespace storage
 }  // namespace esphome
+
 
 
 
