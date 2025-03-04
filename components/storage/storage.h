@@ -9,7 +9,7 @@
 namespace esphome {
 namespace storage {
 
-class MediaPlayerComponent : public esphome::Component {
+class SoundComponent : public esphome::Component {
  public:
   void set_platform(const std::string &platform) { platform_ = platform; }
   
