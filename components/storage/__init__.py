@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
-from esphome import automation, lambda_
+from esphome import automation
 
 DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
@@ -17,7 +17,7 @@ STORAGE_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(StorageComponent),
     cv.Required(CONF_PLATFORM): cv.one_of("flash", "inline", "sd_card", lower=True),
     cv.Optional(CONF_FILES): cv.ensure_list({
-        cv.Required(CONF_DATA): cv.lambda_,
+        cv.Required(CONF_DATA): cv.returning_lambda,
         cv.Required(CONF_ID): cv.string,
     }),
 }).extend(cv.COMPONENT_SCHEMA)
@@ -36,7 +36,7 @@ def to_code(config):
         if CONF_FILES in conf:
             for file in conf[CONF_FILES]:
                 # Process lambda for data
-                data_lambda = yield lambda_.process_lambda(
+                data_lambda = yield cg.process_lambda(
                     file[CONF_DATA], 
                     [],  # No arguments
                     return_type=cg.std_string
