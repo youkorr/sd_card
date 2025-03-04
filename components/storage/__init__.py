@@ -10,18 +10,18 @@ CONF_STORAGE = "storage"
 CONF_IMAGES = "images"
 
 storage_ns = cg.esphome_ns.namespace('storage')
-StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
+sd_card = storage_ns.class_('sd_card', cg.Component)
 PlayMediaAction = storage_ns.class_('PlayMediaAction', automation.Action)
 LoadImageAction = storage_ns.class_('LoadImageAction', automation.Action)
 
 # Schéma pour les actions
 STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
-    cv.Required("storage_id"): cv.use_id(StorageComponent),
+    cv.Required("storage_id"): cv.use_id(sd_card),
     cv.Required("media_file"): cv.string,
 })
 
 STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
-    cv.Required("storage_id"): cv.use_id(StorageComponent),
+    cv.Required("storage_id"): cv.use_id(sd_card),
     cv.Required("image_id"): cv.string,
 })
 
