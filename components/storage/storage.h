@@ -3,7 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
-#include "esphome/components/speaker/speaker_media_player.h"
+
 
 namespace esphome {
 namespace storage {
