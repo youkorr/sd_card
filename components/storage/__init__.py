@@ -7,6 +7,7 @@ DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
+CONF_IMAGES = "images"
 
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
