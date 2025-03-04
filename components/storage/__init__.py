@@ -52,7 +52,7 @@ async def storage_load_image_to_code(config, action_id, template_arg, args):
 
 # Schéma pour le stockage
 STORAGE_SCHEMA = cv.Schema({
-    cv.GenerateID(): cv.declare_id(StorageComponent),
+    cv.GenerateID(): cv.declare_id(sd_card),
     cv.Required(CONF_PLATFORM): cv.one_of("flash", "inline", "sd_card", lower=True),
     cv.Required(CONF_FILES): cv.ensure_list({
         cv.Required("source"): cv.file_,
