@@ -4,7 +4,7 @@ from esphome.components import sd_card
 from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
 from esphome import automation
 
-DEPENDENCIES = ["sd_card"]
+DEPENDENCIES = []
 CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
