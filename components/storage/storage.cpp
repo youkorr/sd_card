@@ -3,63 +3,65 @@
 namespace esphome {
 namespace storage {
 
-static const char *const TAG = "storage";
+static const char *const TAG = "sd_card_player";
 
-void StorageComponent::setup() {
-  ESP_LOGD(TAG, "Initializing storage component with platform: %s", platform_.c_str());
+void SdCardPlayerComponent::setup() {
+  ESP_LOGD(TAG, "Initializing SD Card Player");
   
-  if (platform_ == "flash") {
-    setup_flash();
-  } else if (platform_ == "inline") {
-    setup_inline();
-  } else if (platform_ == "sd_card") {
-    setup_sd_card();
-  } else {
-    ESP_LOGE(TAG, "Unknown storage platform: %s", platform_.c_str());
-  }
-}
-
-void StorageComponent::setup_sd_card() {
-  ESP_LOGD(TAG, "Setting up SD card storage");
+  // Log available files
   for (const auto &file : files_) {
     auto data_vec = file.first();
-    std::string data_str(data_vec.begin(), data_vec.end());
-    
-    ESP_LOGD(TAG, "SD Card file - Size: %d, ID: %s", 
-             data_str.size(), file.second.c_str());
+    ESP_LOGD(TAG, "Available File - ID: %s, Size: %d bytes", 
+             file.second.c_str(), data_vec.size());
   }
 }
 
-void StorageComponent::setup_flash() {
-  ESP_LOGD(TAG, "Setting up Flash storage");
+void SdCardPlayerComponent::loop() {
+  // Placeholder for any ongoing playback management
+  if (is_playing_) {
+    // Add any necessary playback monitoring logic
+  }
+}
+
+void SdCardPlayerComponent::play_file(const std::string &id) {
+  // Find the file
   for (const auto &file : files_) {
-    auto data_vec = file.first();
-    std::string data_str(data_vec.begin(), data_vec.end());
-    
-    ESP_LOGD(TAG, "Flash file - Size: %d, ID: %s", 
-             data_str.size(), file.second.c_str());
+    if (file.second == id) {
+      auto data = file.first();
+      
+      // Log playback start
+      ESP_LOGD(TAG, "Starting playback of file: %s (Size: %d bytes)", 
+               id.c_str(), data.size());
+      
+      // Set playback state
+      current_file_id_ = id;
+      is_playing_ = true;
+      
+      // TODO: Implement actual audio playback logic
+      // This might involve:
+      // - Sending data to an audio DAC
+      // - Using I2S or other audio interfaces
+      // - Interfacing with specific audio playback hardware
+      
+      return;
+    }
   }
+  
+  // File not found
+  ESP_LOGE(TAG, "File with ID %s not found", id.c_str());
+  is_playing_ = false;
 }
 
-void StorageComponent::setup_inline() {
-  ESP_LOGD(TAG, "Setting up Inline storage");
-  for (const auto &file : files_) {
-    auto data_vec = file.first();
-    std::string data_str(data_vec.begin(), data_vec.end());
+void SdCardPlayerComponent::stop_playback() {
+  if (is_playing_) {
+    ESP_LOGD(TAG, "Stopping playback of file: %s", current_file_id_.c_str());
     
-    ESP_LOGD(TAG, "Inline file - Size: %d, ID: %s", 
-             data_str.size(), file.second.c_str());
+    // Reset playback state
+    is_playing_ = false;
+    current_file_id_.clear();
+    
+    // TODO: Implement actual stop playback logic
   }
-}
-
-void StorageComponent::play_media(const std::string &media_file) {
-  ESP_LOGD(TAG, "Playing media file: %s", media_file.c_str());
-  // Implement media playback logic here
-}
-
-void StorageComponent::load_image(const std::string &image_id) {
-  ESP_LOGD(TAG, "Loading image with ID: %s", image_id.c_str());
-  // Implement image loading logic here
 }
 
 }  // namespace storage
