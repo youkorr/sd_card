@@ -8,6 +8,7 @@ CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
 CONF_DATA = "data"
+CONF_MEDIA_FILE = "media_file"
 
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
@@ -22,9 +23,27 @@ STORAGE_SCHEMA = cv.Schema({
     }),
 }).extend(cv.COMPONENT_SCHEMA)
 
+# Schema for play media action
+STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
+    cv.Required("storage_id"): cv.use_id(StorageComponent),
+    cv.Required(CONF_MEDIA_FILE): cv.string,
+})
+
 CONFIG_SCHEMA = cv.All(
     cv.ensure_list(STORAGE_SCHEMA),
 )
+
+# Register play media action
+@automation.register_action(
+    "storage.play_media",
+    storage_ns.class_("PlayMediaAction"),
+    STORAGE_PLAY_MEDIA_SCHEMA,
+)
+def storage_play_media_to_code(config, action_id, template_arg, args):
+    storage = yield cg.get_variable(config["storage_id"])
+    var = cg.new_Pvariable(action_id, template_arg, storage)
+    cg.add(var.set_media_file(config[CONF_MEDIA_FILE]))
+    yield var
 
 def to_code(config):
     for conf in config:
