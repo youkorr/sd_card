@@ -63,50 +63,17 @@ class SdMmc : public Component {
   bool create_directory(const char *path);
   bool remove_directory(const char *path);
 
-  // Nouveau code pour read_file
-  std::vector<uint8_t> read_file(char const *path) {
-    if (path == nullptr) {
-      ESP_LOGE("sd_mmc", "Cannot read file: path is null");
-      return {};
-    }
-
-    // Vérifier si le fichier existe
-    if (!this->is_directory(path)) {
-      FILE *file = fopen(path, "rb");
-      if (file == nullptr) {
-        ESP_LOGE("sd_mmc", "Failed to open file %s for reading", path);
-        return {};
-      }
-
-      // Obtenir la taille du fichier
-      fseek(file, 0, SEEK_END);
-      size_t file_size = ftell(file);
-      fseek(file, 0, SEEK_SET);
-
-      // Créer un buffer de la taille du fichier
-      std::vector<uint8_t> buffer(file_size);
-
-      // Lire le contenu du fichier
-      size_t bytes_read = fread(buffer.data(), 1, file_size, file);
-      fclose(file);
-
-      if (bytes_read != file_size) {
-        ESP_LOGE("sd_mmc", "Failed to read file %s completely, expected %zu bytes but got %zu", 
-                 path, file_size, bytes_read);
-        buffer.resize(bytes_read);  // Ajuster la taille du buffer si nécessaire
-      }
-
-      ESP_LOGD("sd_mmc", "Successfully read %zu bytes from file %s", bytes_read, path);
-      return buffer;
-    } else {
-      ESP_LOGE("sd_mmc", "Cannot read %s: it's a directory", path);
-      return {};
-    }
-  }
-
-  std::vector<uint8_t> read_file(std::string const &path) {
-    return this->read_file(path.c_str());
-  }
+  // Declarations des fonctions
+  std::vector<uint8_t> read_file(char const *path);
+  std::vector<uint8_t> read_file(std::string const &path);
+  bool is_directory(const char *path);
+  bool is_directory(std::string const &path);
+  size_t file_size(const char *path);
+  size_t file_size(std::string const &path);
+  std::vector<std::string> list_directory(const char *path, uint8_t depth);
+  std::vector<std::string> list_directory(std::string path, uint8_t depth);
+  std::vector<FileInfo> list_directory_file_info(const char *path, uint8_t depth);
+  std::vector<FileInfo> list_directory_file_info(std::string path, uint8_t depth);
 
 #ifdef USE_SENSOR
   void add_file_size_sensor(sensor::Sensor *, std::string const &path);
@@ -130,7 +97,7 @@ class SdMmc : public Component {
   uint8_t data2_pin_;
   uint8_t data3_pin_;
   bool mode_1bit_;
-  int8_t power_ctrl_pin_{-1};  
+  int8_t power_ctrl_pin_{-1};
 #ifdef USE_ESP_IDF
   sdmmc_card_t *card_;
 #endif
