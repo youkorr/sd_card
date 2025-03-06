@@ -13,7 +13,7 @@ CONF_SOURCE = "source"
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
-# Schema for media files
+# Schema for individual file entry
 FILE_SCHEMA = cv.Schema({
     cv.Required(CONF_SOURCE): cv.string,
     cv.Required(CONF_ID): cv.string,
@@ -21,8 +21,8 @@ FILE_SCHEMA = cv.Schema({
 
 # Main storage schema
 CONFIG_SCHEMA = cv.Schema({
-    cv.Required(CONF_ID): cv.declare_id(StorageComponent),
     cv.Required(CONF_PLATFORM): cv.one_of("sd_card", "flash", "inline", lower=True),
+    cv.Required(CONF_ID): cv.declare_id(StorageComponent),
     cv.Optional(CONF_FILES, default=[]): cv.ensure_list(FILE_SCHEMA),
 }).extend(cv.COMPONENT_SCHEMA)
 
