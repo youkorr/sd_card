@@ -24,7 +24,7 @@ FILE_SCHEMA = cv.Schema({
 CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_PLATFORM): cv.one_of("sd_card", "flash", "inline", lower=True),
     cv.Required(CONF_ID): cv.declare_id(StorageComponent),
-    cv.Optional(CONF_FILES, default=[]): cv.ensure_list(FILE_SCHEMA),
+    cv.Required(CONF_FILES): cv.ensure_list(FILE_SCHEMA),
 }).extend(cv.COMPONENT_SCHEMA)
 
 def to_code(config):
@@ -33,11 +33,10 @@ def to_code(config):
     
     cg.add(var.set_platform(config[CONF_PLATFORM]))
     
+    # Register each file with media player
     for file in config[CONF_FILES]:
         cg.add(var.add_file(file[CONF_SOURCE], file[CONF_ID]))
-        
-        # Register media file ID globally
-        cg.add_define(f"STORAGE_FILE_{file[CONF_ID].upper()}_PATH", file[CONF_SOURCE])
+        cg.add_define(f"STORAGE_FILE_{file[CONF_ID].upper()}", file[CONF_SOURCE])
 
 
 
