@@ -9,6 +9,7 @@ CODEOWNERS = ["@votre_nom"]
 CONF_STORAGE = "storage"
 CONF_FILES = "files"
 CONF_SOURCE = "source"
+CONF_MEDIA_FILE = "media_file"
 
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
@@ -34,6 +35,9 @@ def to_code(config):
     
     for file in config[CONF_FILES]:
         cg.add(var.add_file(file[CONF_SOURCE], file[CONF_ID]))
+        
+        # Register media file ID globally
+        cg.add_define(f"STORAGE_FILE_{file[CONF_ID].upper()}_PATH", file[CONF_SOURCE])
 
 
 
