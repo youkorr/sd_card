@@ -1,9 +1,8 @@
 #include "sd_mmc_card.h"
-
-#include <algorithm>
-
-#include "math.h"
 #include "esphome/core/log.h"
+#include <sys/stat.h>
+#include <algorithm>
+#include <cmath>
 
 namespace esphome {
 namespace sd_mmc_card {
@@ -59,6 +58,7 @@ void SdMmc::append_file(const char *path, const uint8_t *buffer, size_t len) {
 std::vector<std::string> SdMmc::list_directory(const char *path, uint8_t depth) {
   std::vector<std::string> list;
   std::vector<FileInfo> infos = list_directory_file_info(path, depth);
+  list.resize(infos.size()); // Assurez-vous que la liste a la bonne taille
   std::transform(infos.cbegin(), infos.cend(), list.begin(), [](FileInfo const &info) { return info.path; });
   return list;
 }
@@ -77,11 +77,90 @@ std::vector<FileInfo> SdMmc::list_directory_file_info(std::string path, uint8_t 
   return this->list_directory_file_info(path.c_str(), depth);
 }
 
-size_t SdMmc::file_size(std::string const &path) { return this->file_size(path.c_str()); }
+size_t SdMmc::file_size(const char *path) {
+  if (path == nullptr) {
+    ESP_LOGE(TAG, "Path is null");
+    return 0;
+  }
+  struct stat file_stat;
+  if (stat(path, &file_stat) != 0) {
+    ESP_LOGW(TAG, "File does not exist: %s", path);
+    return 0;
+  }
+  return file_stat.st_size;
+}
 
-bool SdMmc::is_directory(std::string const &path) { return this->is_directory(path.c_str()); }
+size_t SdMmc::file_size(std::string const &path) {
+  return this->file_size(path.c_str());
+}
+
+bool SdMmc::is_directory(const char *path) {
+  if (path == nullptr) {
+    ESP_LOGE(TAG, "Path is null");
+    return false;
+  }
+  struct stat path_stat;
+  if (stat(path, &path_stat) != 0) {
+    ESP_LOGW(TAG, "Path does not exist: %s", path);
+    return false;
+  }
+  return S_ISDIR(path_stat.st_mode);
+}
+
+bool SdMmc::is_directory(std::string const &path) {
+  return this->is_directory(path.c_str());
+}
+
+bool SdMmc::delete_file(const char *path) {
+    if (path == nullptr) {
+    ESP_LOGE(TAG, "Path is null");
+    return false;
+  }
+  if (remove(path) == 0) {
+    ESP_LOGD(TAG, "File %s deleted successfully", path);
+    return true;
+  } else {
+    ESP_LOGE(TAG, "Unable to delete file %s", path);
+    return false;
+  }
+}
+
 
 bool SdMmc::delete_file(std::string const &path) { return this->delete_file(path.c_str()); }
+
+std::vector<uint8_t> SdMmc::read_file(const char *path) {
+  if (path == nullptr) {
+    ESP_LOGE(TAG, "Cannot read file: path is null");
+    return {};
+  }
+
+  if (!this->is_directory(path)) {
+    FILE *file = fopen(path, "rb");
+    if (file == nullptr) {
+      ESP_LOGE(TAG, "Failed to open file %s for reading", path);
+      return {};
+    }
+    fseek(file, 0, SEEK_END);
+    size_t file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    std::vector<uint8_t> buffer(file_size);
+    size_t bytes_read = fread(buffer.data(), 1, file_size, file);
+    fclose(file);
+
+    if (bytes_read != file_size) {
+      ESP_LOGE(TAG, "Failed to read file %s completely, expected %zu bytes but got %zu",
+               path, file_size, bytes_read);
+      buffer.resize(bytes_read);
+    }
+
+    ESP_LOGD(TAG, "Successfully read %zu bytes from file %s", bytes_read, path);
+    return buffer;
+  } else {
+    ESP_LOGE(TAG, "Cannot read %s: it's a directory", path);
+    return {};
+  }
+}
+
 
 std::vector<uint8_t> SdMmc::read_file(std::string const &path) { return this->read_file(path.c_str()); }
 
@@ -116,6 +195,12 @@ std::string SdMmc::error_code_to_string(SdMmc::ErrorCode code) {
     default:
       return "Unknown error";
   }
+}
+
+std::vector<FileInfo> &SdMmc::list_directory_file_info_rec(const char *path, uint8_t depth, std::vector<FileInfo> &list) {
+    // Implémentez la logique récursive ici pour lister les fichiers et dossiers
+    // et ajoutez les FileInfo à la liste.
+    return list;
 }
 
 long double convertBytes(uint64_t value, MemoryUnits unit) {
