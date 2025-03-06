@@ -62,19 +62,16 @@ class SdMmc : public Component {
   bool delete_file(std::string const &path);
   bool create_directory(const char *path);
   bool remove_directory(const char *path);
-
-  // Declarations des fonctions
   std::vector<uint8_t> read_file(char const *path);
   std::vector<uint8_t> read_file(std::string const &path);
   bool is_directory(const char *path);
   bool is_directory(std::string const &path);
-  size_t file_size(const char *path);
-  size_t file_size(std::string const &path);
   std::vector<std::string> list_directory(const char *path, uint8_t depth);
   std::vector<std::string> list_directory(std::string path, uint8_t depth);
   std::vector<FileInfo> list_directory_file_info(const char *path, uint8_t depth);
   std::vector<FileInfo> list_directory_file_info(std::string path, uint8_t depth);
-
+  size_t file_size(const char *path);
+  size_t file_size(std::string const &path);
 #ifdef USE_SENSOR
   void add_file_size_sensor(sensor::Sensor *, std::string const &path);
 #endif
@@ -97,7 +94,7 @@ class SdMmc : public Component {
   uint8_t data2_pin_;
   uint8_t data3_pin_;
   bool mode_1bit_;
-  int8_t power_ctrl_pin_{-1};
+  int8_t power_ctrl_pin_{-1};  // Changement de uint8_t à int8_t pour permettre -1
 #ifdef USE_ESP_IDF
   sdmmc_card_t *card_;
 #endif
@@ -115,11 +112,81 @@ class SdMmc : public Component {
   static std::string error_code_to_string(ErrorCode);
 };
 
-long double convertBytes(uint64_t value, MemoryUnits unit);
+template<typename... Ts> class SdMmcWriteFileAction : public Action<Ts...> {
+ public:
+  SdMmcWriteFileAction(SdMmc *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, path)
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, data)
 
-// ... (le reste du code reste inchangé, par exemple les classes d'actions)
+  void play(Ts... x) {
+    auto path = this->path_.value(x...);
+    auto buffer = this->data_.value(x...);
+    this->parent_->write_file(path.c_str(), buffer.data(), buffer.size());
+  }
 
+ protected:
+  SdMmc *parent_;
+};
 
+template<typename... Ts> class SdMmcAppendFileAction : public Action<Ts...> {
+ public:
+  SdMmcAppendFileAction(SdMmc *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, path)
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, data)
+
+  void play(Ts... x) {
+    auto path = this->path_.value(x...);
+    auto buffer = this->data_.value(x...);
+    this->parent_->append_file(path.c_str(), buffer.data(), buffer.size());
+  }
+
+ protected:
+  SdMmc *parent_;
+};
+
+template<typename... Ts> class SdMmcCreateDirectoryAction : public Action<Ts...> {
+ public:
+  SdMmcCreateDirectoryAction(SdMmc *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, path)
+
+  void play(Ts... x) {
+    auto path = this->path_.value(x...);
+    this->parent_->create_directory(path.c_str());
+  }
+
+ protected:
+  SdMmc *parent_;
+};
+
+template<typename... Ts> class SdMmcRemoveDirectoryAction : public Action<Ts...> {
+ public:
+  SdMmcRemoveDirectoryAction(SdMmc *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, path)
+
+  void play(Ts... x) {
+    auto path = this->path_.value(x...);
+    this->parent_->remove_directory(path.c_str());
+  }
+
+ protected:
+  SdMmc *parent_;
+};
+
+template<typename... Ts> class SdMmcDeleteFileAction : public Action<Ts...> {
+ public:
+  SdMmcDeleteFileAction(SdMmc *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, path)
+
+  void play(Ts... x) {
+    auto path = this->path_.value(x...);
+    this->parent_->delete_file(path.c_str());
+  }
+
+ protected:
+  SdMmc *parent_;
+};
+
+long double convertBytes(uint64_t, MemoryUnits);
 
 }  // namespace sd_mmc_card
 }  // namespace esphome
