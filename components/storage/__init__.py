@@ -1,82 +1,64 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PLATFORM, CONF_FILES
+from esphome.const import CONF_ID, CONF_PLATFORM
 from esphome import automation
 
-DEPENDENCIES = []
+DEPENDENCIES = ['media_player']
 CODEOWNERS = ["@votre_nom"]
 
 CONF_STORAGE = "storage"
-CONF_IMAGES = "images"
+CONF_FILES = "files"
+CONF_SOURCE = "source"
 
 storage_ns = cg.esphome_ns.namespace('storage')
 StorageComponent = storage_ns.class_('StorageComponent', cg.Component)
 
-# Schéma pour les actions
-STORAGE_PLAY_MEDIA_SCHEMA = cv.Schema({
-    cv.Required("storage_id"): cv.use_id(StorageComponent),
-    cv.Required("media_file"): cv.string,
+# Schema for media files
+FILE_SCHEMA = cv.Schema({
+    cv.Required(CONF_SOURCE): cv.string,
+    cv.Required(CONF_ID): cv.string,
 })
 
-STORAGE_LOAD_IMAGE_SCHEMA = cv.Schema({
-    cv.Required("storage_id"): cv.use_id(StorageComponent),
-    cv.Required("image_id"): cv.string,
-})
-
-# Enregistrement des actions
-@automation.register_action(
-    "storage_sd_play.media",
-    storage_ns.class_("PlayMediaAction"),
-    STORAGE_PLAY_MEDIA_SCHEMA,
-)
-def storage_play_media_to_code(config, action_id, template_arg, args):
-    storage = yield cg.get_variable(config["storage_id"])
-    var = cg.new_Pvariable(action_id, template_arg, storage)
-    cg.add(var.set_media_file(config["media_file"]))
-    yield var
-
-@automation.register_action(
-    "storage.load_image",
-    storage_ns.class_("LoadImageAction", automation.Action),
-    STORAGE_LOAD_IMAGE_SCHEMA,
-)
-def storage_load_image_to_code(config, action_id, template_arg, args):
-    storage = yield cg.get_variable(config["storage_id"])
-    var = cg.new_Pvariable(action_id, template_arg, storage)
-    cg.add(var.set_image_id(config["image_id"]))
-    yield var
-
-# Schéma pour le stockage
+# Main storage schema
 STORAGE_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(StorageComponent),
-    cv.Required(CONF_PLATFORM): cv.one_of("flash", "inline", "sd_card", lower=True),
-    cv.Required(CONF_FILES): cv.ensure_list({
-        cv.Required("source"): cv.string,
-        cv.Required("id"): cv.string,
-    }),
-    cv.Optional(CONF_IMAGES): cv.ensure_list({
-        cv.Required("file"): cv.string,
-        cv.Required("id"): cv.string,
-    }),
+    cv.Required(CONF_PLATFORM): cv.one_of("sd_card", "flash", "inline", lower=True),
+    cv.Optional(CONF_FILES, default=[]): cv.ensure_list(FILE_SCHEMA),
 }).extend(cv.COMPONENT_SCHEMA)
 
-CONFIG_SCHEMA = cv.All(
-    cv.ensure_list(STORAGE_SCHEMA),
+@automation.register_action(
+    "storage.play_media",
+    storage_ns.class_("PlayMediaAction"),
+    cv.Schema({
+        cv.Required("storage_id"): cv.use_id(StorageComponent),
+        cv.Required("media_file"): cv.templatable(cv.string),
+        cv.Optional("announcement", default=False): cv.templatable(cv.boolean),
+        cv.Optional("enqueue", default=False): cv.templatable(cv.boolean),
+    })
 )
+def storage_play_media_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config["storage_id"])
+    
+    template_ = await cg.templatable(config["media_file"], args, str)
+    cg.add(var.set_media_file(template_))
+    
+    template_ = await cg.templatable(config["announcement"], args, bool)
+    cg.add(var.set_announcement(template_))
+    
+    template_ = await cg.templatable(config["enqueue"], args, bool)
+    cg.add(var.set_enqueue(template_))
+    
+    return var
 
 def to_code(config):
-    for conf in config:
-        var = cg.new_Pvariable(conf[CONF_ID])
-        yield cg.register_component(var, conf)
-        
-        cg.add(var.set_platform(conf[CONF_PLATFORM]))
-        
-        for file in conf[CONF_FILES]:
-            cg.add(var.add_file(file["source"], file["id"]))
-        
-        if CONF_IMAGES in conf:
-            for image in conf[CONF_IMAGES]:
-                cg.add(var.add_image(image["file"], image["id"]))
+    var = cg.new_Pvariable(config[CONF_ID])
+    await cg.register_component(var, config)
+    
+    cg.add(var.set_platform(config[CONF_PLATFORM]))
+    
+    for file in config[CONF_FILES]:
+        cg.add(var.add_file(file[CONF_SOURCE], file[CONF_ID]))
 
 
 
