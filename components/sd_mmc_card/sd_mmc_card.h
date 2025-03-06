@@ -117,5 +117,11 @@ class SdMmc : public Component {
 
 long double convertBytes(uint64_t value, MemoryUnits unit);
 
+// ... (le reste du code reste inchangé, par exemple les classes d'actions)
+
+}  // namespace sd_mmc_card
+}  // namespace esphome
+
+
 }  // namespace sd_mmc_card
 }  // namespace esphome
