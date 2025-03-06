@@ -2,26 +2,28 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
-#include "esphome/core/log.h"
+#include <vector>
+#include <string>
 
 namespace esphome {
 namespace storage {
 
-class StorageComponent : public esphome::Component {
+class StorageComponent : public Component {
  public:
   void set_platform(const std::string &platform) { platform_ = platform; }
   void add_file(const std::string &source, const std::string &id) {
-    files_.push_back({source, id});
+    files_.emplace_back(source, id);
   }
   void add_image(const std::string &file, const std::string &id) {
-    images_.push_back({file, id});
+    images_.emplace_back(file, id);
   }
-  void play_media(const std::string &media_file);
-  void load_image(const std::string &image_id);
   void setup() override;
-  void setup_sd_card();
+  
+  // New method for media player integration
+  std::string get_file_path(const std::string &file_id) const;
 
  protected:
+  void setup_sd_card();
   void setup_flash();
   void setup_inline();
 
@@ -31,38 +33,25 @@ class StorageComponent : public esphome::Component {
   std::vector<std::pair<std::string, std::string>> images_;
 };
 
-// Modified to be a template class
 template<typename... Ts>
-class PlayMediaAction : public esphome::Action<Ts...> {
+class PlayMediaAction : public Action<Ts...> {
  public:
-  explicit PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
-  void set_media_file(const std::string &media_file) { media_file_ = media_file; }
-  void play() override {
-    if (storage_ && !media_file_.empty()) {
-      storage_->play_media(media_file_);
+  PlayMediaAction(StorageComponent *storage) : storage_(storage) {}
+  
+  TEMPLATABLE_VALUE(std::string, media_file)
+  TEMPLATABLE_VALUE(bool, announcement)
+  TEMPLATABLE_VALUE(bool, enqueue)
+
+  void play(Ts... x) override {
+    if (storage_) {
+      auto file_path = storage_->get_file_path(this->media_file_.value(x...));
+      // Implementation to play the file would go here
+      // This is where you'd integrate with your media player
     }
   }
 
- private:
-  StorageComponent *storage_{nullptr};
-  std::string media_file_;
-};
-
-// Similarly modify LoadImageAction
-template<typename... Ts>
-class LoadImageAction : public esphome::Action<Ts...> {
- public:
-  explicit LoadImageAction(StorageComponent *storage) : storage_(storage) {}
-  void set_image_id(const std::string &image_id) { image_id_ = image_id; }
-  void play() override {
-    if (storage_ && !image_id_.empty()) {
-      storage_->load_image(image_id_);
-    }
-  }
-
- private:
-  StorageComponent *storage_{nullptr};
-  std::string image_id_;
+ protected:
+  StorageComponent *storage_;
 };
 
 }  // namespace storage
