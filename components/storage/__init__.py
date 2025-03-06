@@ -38,22 +38,22 @@ STORAGE_SCHEMA = cv.Schema({
 )
 def storage_play_media_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
-    await cg.register_parented(var, config["storage_id"])
+    yield cg.register_parented(var, config["storage_id"])
     
-    template_ = await cg.templatable(config["media_file"], args, str)
+    template_ = yield cg.templatable(config["media_file"], args, str)
     cg.add(var.set_media_file(template_))
     
-    template_ = await cg.templatable(config["announcement"], args, bool)
+    template_ = yield cg.templatable(config["announcement"], args, bool)
     cg.add(var.set_announcement(template_))
     
-    template_ = await cg.templatable(config["enqueue"], args, bool)
+    template_ = yield cg.templatable(config["enqueue"], args, bool)
     cg.add(var.set_enqueue(template_))
     
-    return var
+    yield var
 
 def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
+    yield cg.register_component(var, config)
     
     cg.add(var.set_platform(config[CONF_PLATFORM]))
     
