@@ -1,6 +1,7 @@
 #include "sd_mmc_card.h"
 
 #include <algorithm>
+#include <memory>
 
 #include "math.h"
 #include "esphome/core/log.h"
@@ -76,14 +77,160 @@ void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len) {
   this->write_file(path, buffer, len, "w");
 }
 
+void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode) {
+  auto stream = this->open_file_write(path, mode);
+  if (stream && stream->is_open()) {
+    stream->write(buffer, len);
+  }
+}
+
 void SdMmc::append_file(const char *path, const uint8_t *buffer, size_t len) {
   ESP_LOGV(TAG, "Appending to file: %s", path);
   this->write_file(path, buffer, len, "a");
 }
 
+std::vector<uint8_t> SdMmc::read_file(const char *path) {
+  std::vector<uint8_t> content;
+  size_t file_size = this->get_file_size(path);
+  
+  if (file_size == 0) {
+    ESP_LOGE(TAG, "Cannot read file (empty or not found): %s", path);
+    return content;
+  }
+  
+  // Pour compatibilité, utilisons encore la méthode traditionnelle
+  // Tout en gardant la possibilité d'utiliser le streaming pour les gros fichiers
+  if (file_size > 1024 * 1024) {  // Plus de 1MB
+    ESP_LOGW(TAG, "Reading large file (%s), consider using streaming APIs instead", format_size(file_size).c_str());
+  }
+  
+  content.resize(file_size);
+  auto stream = this->open_file_read(path);
+  if (stream && stream->is_open()) {
+    size_t bytes_read = stream->read(content.data(), file_size);
+    if (bytes_read != file_size) {
+      content.resize(bytes_read);
+      ESP_LOGW(TAG, "Read fewer bytes than expected (%d vs %d)", bytes_read, file_size);
+    }
+  } else {
+    ESP_LOGE(TAG, "Failed to open file for reading: %s", path);
+    content.clear();
+  }
+  
+  return content;
+}
+
+std::vector<uint8_t> SdMmc::read_file(std::string const &path) {
+  return this->read_file(path.c_str());
+}
+
+std::unique_ptr<FileStream> SdMmc::open_file_read(const char* path) {
+  std::unique_ptr<FileStream> stream = std::make_unique<FileStream>();
+  if (!stream->open_read(path)) {
+    ESP_LOGE(TAG, "Failed to open file for reading: %s", path);
+    return nullptr;
+  }
+  return stream;
+}
+
+std::unique_ptr<FileStream> SdMmc::open_file_read(const std::string& path) {
+  return this->open_file_read(path.c_str());
+}
+
+std::unique_ptr<FileStream> SdMmc::open_file_write(const char* path, const char* mode) {
+  std::unique_ptr<FileStream> stream = std::make_unique<FileStream>();
+  if (!stream->open_write(path, mode)) {
+    ESP_LOGE(TAG, "Failed to open file for writing: %s", path);
+    return nullptr;
+  }
+  return stream;
+}
+
+std::unique_ptr<FileStream> SdMmc::open_file_write(const std::string& path, const char* mode) {
+  return this->open_file_write(path.c_str(), mode);
+}
+
+bool SdMmc::process_file(const char* path, ReadCallback callback, size_t buffer_size) {
+  size_t file_size = this->get_file_size(path);
+  if (file_size == 0) {
+    ESP_LOGW(TAG, "File empty or not found: %s", path);
+    return false;
+  }
+  
+  auto stream = this->open_file_read(path);
+  if (!stream || !stream->is_open()) {
+    ESP_LOGE(TAG, "Failed to open file for processing: %s", path);
+    return false;
+  }
+  
+  std::vector<uint8_t> buffer(buffer_size);
+  size_t bytes_read = 0;
+  size_t total_read = 0;
+  bool result = true;
+  
+  ESP_LOGD(TAG, "Processing file: %s with buffer size: %s", path, format_size(buffer_size).c_str());
+  
+  while ((bytes_read = stream->read(buffer.data(), buffer_size)) > 0) {
+    result = callback(buffer.data(), bytes_read, file_size, total_read);
+    total_read += bytes_read;
+    
+    if (!result) {
+      ESP_LOGW(TAG, "File processing callback requested early termination");
+      break;
+    }
+  }
+  
+  if (total_read != file_size && result) {
+    ESP_LOGW(TAG, "File processing incomplete: %d/%d bytes processed", total_read, file_size);
+    result = false;
+  }
+  
+  return result;
+}
+
+bool SdMmc::process_file(const std::string& path, ReadCallback callback, size_t buffer_size) {
+  return this->process_file(path.c_str(), callback, buffer_size);
+}
+
+bool SdMmc::write_file_stream(const char* path, WriteCallback callback, size_t buffer_size) {
+  auto stream = this->open_file_write(path);
+  if (!stream || !stream->is_open()) {
+    ESP_LOGE(TAG, "Failed to open file for streaming write: %s", path);
+    return false;
+  }
+  
+  std::vector<uint8_t> buffer(buffer_size);
+  size_t bytes_to_write = 0;
+  size_t total_written = 0;
+  
+  ESP_LOGD(TAG, "Writing file in stream mode: %s with buffer size: %s", path, format_size(buffer_size).c_str());
+  
+  while ((bytes_to_write = callback(buffer.data(), buffer_size)) > 0) {
+    size_t bytes_written = stream->write(buffer.data(), bytes_to_write);
+    if (bytes_written != bytes_to_write) {
+      ESP_LOGE(TAG, "Write error: wrote %d/%d bytes", bytes_written, bytes_to_write);
+      return false;
+    }
+    total_written += bytes_written;
+    
+    // Si le callback renvoie moins que la taille du buffer, c'est la fin du flux
+    if (bytes_to_write < buffer_size) {
+      break;
+    }
+  }
+  
+  ESP_LOGD(TAG, "Finished writing file: %s, total bytes: %s", path, format_size(total_written).c_str());
+  return true;
+}
+
+bool SdMmc::write_file_stream(const std::string& path, WriteCallback callback, size_t buffer_size) {
+  return this->write_file_stream(path.c_str(), callback, buffer_size);
+}
+
 std::vector<std::string> SdMmc::list_directory(const char *path, uint8_t depth) {
   std::vector<std::string> list;
   std::vector<FileInfo> infos = list_directory_file_info(path, depth);
+  list.resize(infos.size());
   std::transform(infos.cbegin(), infos.cend(), list.begin(), [](FileInfo const &info) { return info.path; });
   return list;
 }
@@ -107,8 +254,6 @@ size_t SdMmc::file_size(std::string const &path) { return this->file_size(path.c
 bool SdMmc::is_directory(std::string const &path) { return this->is_directory(path.c_str()); }
 
 bool SdMmc::delete_file(std::string const &path) { return this->delete_file(path.c_str()); }
-
-std::vector<uint8_t> SdMmc::read_file(std::string const &path) { return this->read_file(path.c_str()); }
 
 #ifdef USE_SENSOR
 void SdMmc::add_file_size_sensor(sensor::Sensor *sensor, std::string const &path) {
