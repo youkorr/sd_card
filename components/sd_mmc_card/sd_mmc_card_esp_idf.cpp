@@ -8,10 +8,10 @@
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
 #include "driver/sdmmc_types.h"
-#include <sys/stat.h> // Required for stat()
+#include <sys/stat.h>
 #endif
 
-int constexpr SD_OCR_SDHC_CAP = (1 << 30);  // value defined in esp-idf/components/sdmmc/include/sd_protocol_defs.h
+int constexpr SD_OCR_SDHC_CAP = (1 << 30);
 
 namespace esphome {
 namespace sd_mmc_card {
@@ -50,9 +50,6 @@ void SdMmc::setup() {
   }
 #endif
 
-  // Enable internal pullups on enabled pins. The internal pullups
-  // are insufficient however, please make sure 10k external pullups are
-  // connected on the bus. This is for debug / example purpose only.
   slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
   auto ret = esp_vfs_fat_sdmmc_mount(MOUNT_POINT.c_str(), &host, &slot_config, &mount_config, &this->card_);
@@ -78,8 +75,9 @@ void SdMmc::setup() {
 void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode) {
   ESP_LOGD(TAG, "Writing to file: %s with mode %s", path, mode);
   std::string absolut_path = build_path(path);
-  FILE *file = fopen(absolut_path.c_str(), mode);
-  if (file == nullptr) {
+  FILE *file = NULL;
+  file = fopen(absolut_path.c_str(), mode);
+  if (file == NULL) {
     ESP_LOGE(TAG, "Failed to open file for writing");
     return;
   }
@@ -142,14 +140,11 @@ std::vector<uint8_t> SdMmc::read_file(char const *path) {
   }
 
   std::vector<uint8_t> res;
-  fseek(file, 0, SEEK_END);
-  size_t fileSize = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
+  size_t fileSize = this->file_size(path);
   res.resize(fileSize);
   size_t len = fread(res.data(), 1, fileSize, file);
   fclose(file);
-  if (len != fileSize) {
+  if (len < 0) {
     ESP_LOGE(TAG, "Failed to read file: %s", strerror(errno));
     return std::vector<uint8_t>();
   }
@@ -203,5 +198,6 @@ size_t SdMmc::file_size(const char *path){
 
 }  // namespace sd_mmc_card
 }  // namespace esphome
+
 
 
