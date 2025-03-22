@@ -19,6 +19,27 @@ namespace sd_mmc_card {
 
 enum MemoryUnits : short { Byte = 0, KiloByte = 1, MegaByte = 2, GigaByte = 3, TeraByte = 4, PetaByte = 5 };
 
+// À ajouter dans sd_mmc_card.h
+fs::FS& get_filesystem() { return this->fs_; }
+
+
+// À ajouter dans sd_mmc_card.h
+size_t get_file_size(const std::string& path) {
+  File file = this->fs_.open(path.c_str(), FILE_READ);
+  if (!file) return 0;
+  size_t size = file.size();
+  file.close();
+  return size;
+}
+
+
+
+// À ajouter dans sd_mmc_card.h
+bool exists(const std::string& path) {
+  return this->fs_.exists(path.c_str());
+}
+
+
 // Taille du buffer pour le streaming
 static constexpr size_t DEFAULT_STREAM_BUFFER_SIZE = 1024;
 
