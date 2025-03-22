@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <memory>
+#include <dirent.h>       // Pour opendir, readdir, closedir
+#include <sys/stat.h>     // Pour stat, S_ISDIR
+#include <unistd.h>       // Pour unlink, rmdir
 
 #include "math.h"
 #include "esphome/core/log.h"
@@ -247,6 +250,69 @@ std::vector<FileInfo> SdMmc::list_directory_file_info(const char *path, uint8_t 
 
 std::vector<FileInfo> SdMmc::list_directory_file_info(std::string path, uint8_t depth) {
   return this->list_directory_file_info(path.c_str(), depth);
+}
+
+void SdMmc::list_directory_file_info_rec(const char *path, uint8_t depth, std::vector<FileInfo> &file_info) {
+  DIR *dir = opendir(path);
+  if (!dir) {
+    ESP_LOGE(TAG, "Failed to open directory: %s", path);
+    return;
+  }
+
+  struct dirent *entry;
+  while ((entry = readdir(dir)) != nullptr) {
+    std::string full_path = std::string(path) + "/" + entry->d_name;
+
+    // Ignore les entrées spéciales "." et ".."
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+
+    // Vérifie si c'est un répertoire
+    bool is_dir = (entry->d_type == DT_DIR);
+
+    // Ajoute les informations du fichier/dossier à la liste
+    file_info.emplace_back(full_path, get_file_size(full_path), is_dir);
+
+    // Si c'est un répertoire et que la profondeur n'est pas atteinte, parcourt récursivement
+    if (is_dir && depth > 0) {
+      list_directory_file_info_rec(full_path.c_str(), depth - 1, file_info);
+    }
+  }
+
+  closedir(dir);
+}
+
+bool SdMmc::is_directory(const char *path) {
+  struct stat path_stat;
+  if (stat(path, &path_stat) != 0) {
+    ESP_LOGE(TAG, "Failed to stat path: %s", path);
+    return false;
+  }
+  return S_ISDIR(path_stat.st_mode);
+}
+
+bool SdMmc::delete_file(const char *path) {
+  if (is_directory(path)) {
+    // Supprime un répertoire récursivement
+    std::vector<FileInfo> files = list_directory_file_info(path, 0);
+    for (const auto &file : files) {
+      if (!delete_file(file.path.c_str())) {
+        return false;
+      }
+    }
+    if (rmdir(path) != 0) {
+      ESP_LOGE(TAG, "Failed to delete directory: %s", path);
+      return false;
+    }
+  } else {
+    // Supprime un fichier
+    if (unlink(path) != 0) {
+      ESP_LOGE(TAG, "Failed to delete file: %s", path);
+      return false;
+    }
+  }
+  return true;
 }
 
 size_t SdMmc::file_size(std::string const &path) { return this->file_size(path.c_str()); }
