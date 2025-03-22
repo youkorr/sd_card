@@ -73,7 +73,7 @@ class SdMmc : public Component {
   std::vector<std::string> list_directory(std::string path, uint8_t depth);
   std::vector<FileInfo> list_directory_file_info(const char *path, uint8_t depth);
   std::vector<FileInfo> list_directory_file_info(std::string path, uint8_t depth);
-  size_t file_size(const char *path);
+    size_t file_size(const char *path);
   size_t file_size(std::string const &path);
 #ifdef USE_SENSOR
   void add_file_size_sensor(sensor::Sensor *, std::string const &path);
@@ -197,4 +197,5 @@ std::string format_size(size_t);
 
 }  // namespace sd_mmc_card
 }  // namespace esphome
+
 
