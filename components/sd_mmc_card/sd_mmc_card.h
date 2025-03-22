@@ -58,7 +58,6 @@ class SdMmc : public Component {
   void loop() override;
   void dump_config() override;
   void write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode);
-  void write_file(const char *path, const uint8_t *buffer, size_t len);
   void append_file(const char *path, const uint8_t *buffer, size_t len);
   bool delete_file(const char *path);
   bool delete_file(std::string const &path);
@@ -198,3 +197,4 @@ std::string format_size(size_t);
 
 }  // namespace sd_mmc_card
 }  // namespace esphome
+
