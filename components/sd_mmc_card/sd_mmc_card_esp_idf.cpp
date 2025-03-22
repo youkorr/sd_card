@@ -9,6 +9,7 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdmmc_types.h"
 #include <sys/stat.h> // Required for stat()
+#endif
 
 int constexpr SD_OCR_SDHC_CAP = (1 << 30);  // value defined in esp-idf/components/sdmmc/include/sd_protocol_defs.h
 
@@ -75,6 +76,7 @@ void SdMmc::setup() {
 }
 
 void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode) {
+  ESP_LOGD(TAG, "Writing to file: %s with mode %s", path, mode);
   std::string absolut_path = build_path(path);
   FILE *file = fopen(absolut_path.c_str(), mode);
   if (file == nullptr) {
@@ -82,10 +84,10 @@ void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, cons
     return;
   }
   size_t written = fwrite(buffer, 1, len, file);
-  fclose(file);
   if (written != len) {
-    ESP_LOGE(TAG, "Failed to write all bytes to file");
+    ESP_LOGE(TAG, "Failed to write all bytes to file: %u != %u", written, len);
   }
+  fclose(file);
   this->update_sensors();
 }
 
@@ -190,7 +192,6 @@ bool SdMmc::is_directory(const char *path) {
   }
   return false;
 }
-
 size_t SdMmc::file_size(const char *path){
    std::string absolut_path = build_path(path);
   struct stat st;
@@ -202,6 +203,5 @@ size_t SdMmc::file_size(const char *path){
 
 }  // namespace sd_mmc_card
 }  // namespace esphome
-#endif
 
 
