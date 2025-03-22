@@ -8,23 +8,17 @@
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
 #include "driver/sdmmc_types.h"
-#include <functional>
 
 int constexpr SD_OCR_SDHC_CAP = (1 << 30);  // value defined in esp-idf/components/sdmmc/include/sd_protocol_defs.h
 
 namespace esphome {
 namespace sd_mmc_card {
 
-// Définir une taille de tampon raisonnable pour le streaming
-static constexpr size_t STREAM_BUFFER_SIZE = 4096;  // 4 KB par lecture
 static constexpr size_t FILE_PATH_MAX = ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN;
 static const char *TAG = "sd_mmc_card";
 static const std::string MOUNT_POINT("/sdcard");
 
 std::string build_path(const char *path) { return MOUNT_POINT + path; }
-
-// Définition d'un type de fonction de callback pour le streaming
-using StreamCallback = std::function<bool(const uint8_t *buffer, size_t size, size_t total_size, size_t current_position)>;
 
 void SdMmc::setup() {
   if (this->power_ctrl_pin_ != nullptr)
@@ -79,54 +73,6 @@ void SdMmc::setup() {
   update_sensors();
 }
 
-// Nouvelle méthode pour écrire un fichier par streaming
-bool SdMmc::write_file_stream(const char *path, StreamCallback callback, size_t buffer_size, const char *mode) {
-  std::string absolut_path = build_path(path);
-  FILE *file = fopen(absolut_path.c_str(), mode);
-  if (file == NULL) {
-    ESP_LOGE(TAG, "Failed to open file for writing");
-    return false;
-  }
-
-  size_t total_written = 0;
-  bool success = true;
-  uint8_t *buffer = new (std::nothrow) uint8_t[buffer_size];
-  
-  if (buffer == nullptr) {
-    ESP_LOGE(TAG, "Failed to allocate buffer for streaming");
-    fclose(file);
-    return false;
-  }
-
-  try {
-    size_t bytes_read = 0;
-    do {
-      // Appel du callback pour obtenir les données à écrire
-      bool continue_streaming = callback(buffer, buffer_size, 0, total_written);
-      if (!continue_streaming) {
-        break;
-      }
-
-      bytes_read = buffer_size; // Le callback aura rempli le buffer
-      size_t bytes_written = fwrite(buffer, 1, bytes_read, file);
-      if (bytes_written != bytes_read) {
-        ESP_LOGE(TAG, "Failed to write to file: %s", strerror(errno));
-        success = false;
-        break;
-      }
-      total_written += bytes_written;
-    } while (bytes_read > 0);
-  } catch (const std::exception &e) {
-    ESP_LOGE(TAG, "Exception during file write: %s", e.what());
-    success = false;
-  }
-
-  delete[] buffer;
-  fclose(file);
-  this->update_sensors();
-  return success;
-}
-
 void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode) {
   std::string absolut_path = build_path(path);
   FILE *file = NULL;
@@ -141,122 +87,6 @@ void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, cons
   }
   fclose(file);
   this->update_sensors();
-}
-
-// Nouvelle méthode pour lire un fichier par streaming
-bool SdMmc::read_file_stream(const char *path, StreamCallback callback, size_t buffer_size) {
-  ESP_LOGV(TAG, "Read File Stream: %s", path);
-
-  if (buffer_size == 0) {
-    buffer_size = STREAM_BUFFER_SIZE;
-  }
-
-  std::string absolut_path = build_path(path);
-  FILE *file = fopen(absolut_path.c_str(), "rb");
-  if (file == nullptr) {
-    ESP_LOGE(TAG, "Failed to open file for reading");
-    return false;
-  }
-
-  // Obtenir la taille totale du fichier
-  size_t total_size = this->file_size(path);
-  size_t position = 0;
-  bool success = true;
-  
-  // Allouer le tampon de lecture
-  uint8_t *buffer = new (std::nothrow) uint8_t[buffer_size];
-  if (buffer == nullptr) {
-    ESP_LOGE(TAG, "Failed to allocate buffer for streaming");
-    fclose(file);
-    return false;
-  }
-
-  try {
-    size_t bytes_read;
-    do {
-      bytes_read = fread(buffer, 1, buffer_size, file);
-      if (bytes_read > 0) {
-        // Appeler le callback avec les données lues
-        bool continue_streaming = callback(buffer, bytes_read, total_size, position);
-        if (!continue_streaming) {
-          break;  // Arrêter si le callback indique de terminer
-        }
-        position += bytes_read;
-      }
-    } while (bytes_read > 0);
-
-    // Vérifier s'il y a eu une erreur de lecture
-    if (ferror(file)) {
-      ESP_LOGE(TAG, "Error reading file: %s", strerror(errno));
-      success = false;
-    }
-  } catch (const std::exception &e) {
-    ESP_LOGE(TAG, "Exception during file read: %s", e.what());
-    success = false;
-  }
-
-  // Libération des ressources
-  delete[] buffer;
-  fclose(file);
-  return success;
-}
-
-// Méthode de compatibilité qui utilise read_file_stream en interne
-std::vector<uint8_t> SdMmc::read_file(char const *path) {
-  ESP_LOGV(TAG, "Read File: %s", path);
-  
-  std::vector<uint8_t> result;
-  size_t fileSize = this->file_size(path);
-  
-  // Pour les petits fichiers, on peut directement allouer la mémoire
-  if (fileSize < STREAM_BUFFER_SIZE * 2) {
-    result.reserve(fileSize);
-    
-    this->read_file_stream(path, [&result](const uint8_t *buffer, size_t size, size_t total_size, size_t current_position) {
-      result.insert(result.end(), buffer, buffer + size);
-      return true;
-    }, STREAM_BUFFER_SIZE);
-    
-    return result;
-  }
-  
-  // Pour les gros fichiers, on émet un avertissement
-  ESP_LOGW(TAG, "Reading large file (%zu bytes) into memory. Consider using read_file_stream instead.", fileSize);
-  
-  result.reserve(fileSize);
-  this->read_file_stream(path, [&result](const uint8_t *buffer, size_t size, size_t total_size, size_t current_position) {
-    result.insert(result.end(), buffer, buffer + size);
-    return true;
-  }, STREAM_BUFFER_SIZE);
-  
-  return result;
-}
-
-// Exemple de méthode pour copier un fichier en utilisant le streaming
-bool SdMmc::copy_file_streaming(const char *src_path, const char *dest_path) {
-  ESP_LOGV(TAG, "Copy File (Streaming): %s to %s", src_path, dest_path);
-  
-  return this->read_file_stream(src_path, [this, dest_path](const uint8_t *buffer, size_t size, size_t total_size, size_t current_position) {
-    // Premier bloc, ouvrir en mode 'w' pour écraser le fichier existant
-    const char* mode = (current_position == 0) ? "wb" : "ab";
-    
-    std::string absolut_path = build_path(dest_path);
-    FILE *file = fopen(absolut_path.c_str(), mode);
-    if (file == NULL) {
-      ESP_LOGE(TAG, "Failed to open destination file for writing");
-      return false;
-    }
-    
-    size_t bytes_written = fwrite(buffer, 1, size, file);
-    fclose(file);
-    
-    if (bytes_written != size) {
-      ESP_LOGE(TAG, "Failed to write to destination file");
-      return false;
-    }
-    
-    return true;
-  });
 }
 
 bool SdMmc::create_directory(const char *path) {
@@ -296,6 +126,30 @@ bool SdMmc::delete_file(const char *path) {
   }
   this->update_sensors();
   return true;
+}
+
+std::vector<uint8_t> SdMmc::read_file(char const *path) {
+  ESP_LOGV(TAG, "Read File: %s", path);
+
+  std::string absolut_path = build_path(path);
+  FILE *file = nullptr;
+  file = fopen(absolut_path.c_str(), "rb");
+  if (file == nullptr) {
+    ESP_LOGE(TAG, "Failed to open file for reading");
+    return std::vector<uint8_t>();
+  }
+
+  std::vector<uint8_t> res;
+  size_t fileSize = this->file_size(path);
+  res.resize(fileSize);
+  size_t len = fread(res.data(), 1, fileSize, file);
+  fclose(file);
+  if (len < 0) {
+    ESP_LOGE(TAG, "Failed to read file: %s", strerror(errno));
+    return std::vector<uint8_t>();
+  }
+
+  return res;
 }
 
 std::vector<FileInfo> &SdMmc::list_directory_file_info_rec(const char *path, uint8_t depth,
