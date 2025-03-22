@@ -17,9 +17,10 @@
 namespace esphome {
 namespace sd_mmc_card {
 
-
-
 enum MemoryUnits : short { Byte = 0, KiloByte = 1, MegaByte = 2, GigaByte = 3, TeraByte = 4, PetaByte = 5 };
+
+// Taille du buffer pour le streaming
+static constexpr size_t DEFAULT_STREAM_BUFFER_SIZE = 1024;
 
 #ifdef USE_SENSOR
 struct FileSizeSensor {
@@ -37,6 +38,47 @@ struct FileInfo {
   bool is_directory;
 
   FileInfo(std::string const &, size_t, bool);
+};
+
+// Classe pour les opérations de streaming sur les fichiers
+class FileStream {
+ public:
+  FileStream() = default;
+  ~FileStream();
+  
+  // Ouvre un fichier en mode lecture
+  bool open_read(const char* path);
+  
+  // Ouvre un fichier en mode écriture
+  bool open_write(const char* path, const char* mode);
+  
+  // Lit un bloc de données
+  size_t read(uint8_t* buffer, size_t max_size);
+  
+  // Écrit un bloc de données
+  size_t write(const uint8_t* buffer, size_t len);
+  
+  // Renvoie si le stream est arrivé à la fin
+  bool eof() const;
+  
+  // Ferme le fichier
+  void close();
+  
+  // Renvoie si le fichier est ouvert
+  bool is_open() const;
+  
+  // Obtient la taille du fichier
+  size_t size() const;
+  
+  // Position actuelle dans le fichier
+  size_t tell() const;
+  
+  // Déplace la position dans le fichier
+  bool seek(size_t position);
+
+ private:
+  FILE* file_{nullptr};
+  size_t file_size_{0};
 };
 
 class SdMmc : public Component {
@@ -57,6 +99,8 @@ class SdMmc : public Component {
   void setup() override;
   void loop() override;
   void dump_config() override;
+  
+  // Méthodes de fichier traditionnelles
   void write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode);
   void write_file(const char *path, const uint8_t *buffer, size_t len);
   void append_file(const char *path, const uint8_t *buffer, size_t len);
@@ -68,6 +112,23 @@ class SdMmc : public Component {
   size_t get_file_size(const std::string &path);
   std::vector<uint8_t> read_file(char const *path);
   std::vector<uint8_t> read_file(std::string const &path);
+  
+  // Nouvelles méthodes pour le streaming
+  std::unique_ptr<FileStream> open_file_read(const char* path);
+  std::unique_ptr<FileStream> open_file_read(const std::string& path);
+  std::unique_ptr<FileStream> open_file_write(const char* path, const char* mode = "w");
+  std::unique_ptr<FileStream> open_file_write(const std::string& path, const char* mode = "w");
+  
+  // Callbacks pour le traitement de fichier par morceaux
+  using ReadCallback = std::function<bool(const uint8_t* data, size_t size, size_t total_size, size_t position)>;
+  using WriteCallback = std::function<size_t(uint8_t* buffer, size_t max_size)>;
+  
+  // Traitement d'un fichier par streaming avec callbacks
+  bool process_file(const char* path, ReadCallback callback, size_t buffer_size = DEFAULT_STREAM_BUFFER_SIZE);
+  bool process_file(const std::string& path, ReadCallback callback, size_t buffer_size = DEFAULT_STREAM_BUFFER_SIZE);
+  bool write_file_stream(const char* path, WriteCallback callback, size_t buffer_size = DEFAULT_STREAM_BUFFER_SIZE);
+  bool write_file_stream(const std::string& path, WriteCallback callback, size_t buffer_size = DEFAULT_STREAM_BUFFER_SIZE);
+
   bool is_directory(const char *path);
   bool is_directory(std::string const &path);
   std::vector<std::string> list_directory(const char *path, uint8_t depth);
@@ -117,6 +178,32 @@ class SdMmc : public Component {
   static std::string error_code_to_string(ErrorCode);
 };
 
+// Actions pour le streaming
+template<typename... Ts> class SdMmcProcessFileAction : public Action<Ts...> {
+ public:
+  SdMmcProcessFileAction(SdMmc *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(std::string, path)
+  TEMPLATABLE_VALUE(size_t, buffer_size)
+
+  void set_process_callback(std::function<bool(const uint8_t*, size_t, size_t, size_t)> callback) {
+    this->callback_ = std::move(callback);
+  }
+
+  void play(Ts... x) {
+    auto path = this->path_.value(x...);
+    auto buffer_size = this->buffer_size_.has_value() ? this->buffer_size_.value(x...) : DEFAULT_STREAM_BUFFER_SIZE;
+    
+    if (this->callback_) {
+      this->parent_->process_file(path, this->callback_, buffer_size);
+    }
+  }
+
+ protected:
+  SdMmc *parent_;
+  std::function<bool(const uint8_t*, size_t, size_t, size_t)> callback_;
+};
+
+// Actions traditionnelles
 template<typename... Ts> class SdMmcWriteFileAction : public Action<Ts...> {
  public:
   SdMmcWriteFileAction(SdMmc *parent) : parent_(parent) {}
