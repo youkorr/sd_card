@@ -8,10 +8,8 @@
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
 #include "driver/sdmmc_types.h"
-#include <sys/stat.h>
-#endif
 
-int constexpr SD_OCR_SDHC_CAP = (1 << 30);
+int constexpr SD_OCR_SDHC_CAP = (1 << 30);  // value defined in esp-idf/components/sdmmc/include/sd_protocol_defs.h
 
 namespace esphome {
 namespace sd_mmc_card {
@@ -50,6 +48,9 @@ void SdMmc::setup() {
   }
 #endif
 
+  // Enable internal pullups on enabled pins. The internal pullups
+  // are insufficient however, please make sure 10k external pullups are
+  // connected on the bus. This is for debug / example purpose only.
   slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
   auto ret = esp_vfs_fat_sdmmc_mount(MOUNT_POINT.c_str(), &host, &slot_config, &mount_config, &this->card_);
@@ -73,7 +74,6 @@ void SdMmc::setup() {
 }
 
 void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, const char *mode) {
-  ESP_LOGD(TAG, "Writing to file: %s with mode %s", path, mode);
   std::string absolut_path = build_path(path);
   FILE *file = NULL;
   file = fopen(absolut_path.c_str(), mode);
@@ -81,9 +81,9 @@ void SdMmc::write_file(const char *path, const uint8_t *buffer, size_t len, cons
     ESP_LOGE(TAG, "Failed to open file for writing");
     return;
   }
-  size_t written = fwrite(buffer, 1, len, file);
-  if (written != len) {
-    ESP_LOGE(TAG, "Failed to write all bytes to file: %u != %u", written, len);
+  bool ok = fwrite(buffer, 1, len, file);
+  if (!ok) {
+    ESP_LOGE(TAG, "Failed to write to file");
   }
   fclose(file);
   this->update_sensors();
@@ -152,52 +152,112 @@ std::vector<uint8_t> SdMmc::read_file(char const *path) {
   return res;
 }
 
-std::vector<FileInfo> &SdMmc::list_directory_file_info_rec(const char *path, uint8_t depth, std::vector<FileInfo> &list) {
+std::vector<FileInfo> &SdMmc::list_directory_file_info_rec(const char *path, uint8_t depth,
+                                                           std::vector<FileInfo> &list) {
+  ESP_LOGV(TAG, "Listing directory file info: %s\n", path);
   std::string absolut_path = build_path(path);
-  DIR *dir;
-  struct dirent *ent;
+  DIR *dir = opendir(absolut_path.c_str());
+  if (!dir) {
+    ESP_LOGE(TAG, "Failed to open directory: %s", strerror(errno));
+    return list;
+  }
+  char entry_absolut_path[FILE_PATH_MAX];
+  char entry_path[FILE_PATH_MAX];
+  const size_t dirpath_len = MOUNT_POINT.size();
+  size_t entry_path_len = strlen(path);
+  strlcpy(entry_path, path, sizeof(entry_path));
+  strlcpy(entry_path + entry_path_len, "/", sizeof(entry_path) - entry_path_len);
+  entry_path_len = strlen(entry_path);
 
-  if ((dir = opendir(absolut_path.c_str())) != nullptr) {
-    while ((ent = readdir(dir)) != nullptr) {
-      if ((strcmp(ent->d_name, ".") == 0) || (strcmp(ent->d_name, "..") == 0)) {
-        continue;
-      }
-
-      std::string full_path = absolut_path + "/" + ent->d_name;
-      struct stat st;
-      if (stat(full_path.c_str(), &st) == 0) {
-        bool is_dir = (ent->d_type == DT_DIR);
-        list.emplace_back(full_path, st.st_size, is_dir);
+  strlcpy(entry_absolut_path, MOUNT_POINT.c_str(), sizeof(entry_absolut_path));
+  struct dirent *entry;
+  while ((entry = readdir(dir)) != nullptr) {
+    size_t file_size = 0;
+    strlcpy(entry_path + entry_path_len, entry->d_name, sizeof(entry_path) - entry_path_len);
+    strlcpy(entry_absolut_path + dirpath_len, entry_path, sizeof(entry_absolut_path) - dirpath_len);
+    if (entry->d_type != DT_DIR) {
+      struct stat info;
+      if (stat(entry_absolut_path, &info) < 0) {
+        ESP_LOGE(TAG, "Failed to stat file: %s '%s' %s", strerror(errno), entry->d_name, entry_absolut_path);
       } else {
-        ESP_LOGW(TAG, "Error getting file information for %s", full_path.c_str());
+        file_size = info.st_size;
       }
     }
-    closedir(dir);
-  } else {
-    ESP_LOGE(TAG, "Could not open directory");
+    list.emplace_back(entry_path, file_size, entry->d_type == DT_DIR);
+    if (entry->d_type == DT_DIR && depth)
+      list_directory_file_info_rec(entry_absolut_path, depth - 1, list);
   }
+  closedir(dir);
   return list;
 }
 
 bool SdMmc::is_directory(const char *path) {
   std::string absolut_path = build_path(path);
-  struct stat st;
-  if (stat(absolut_path.c_str(), &st) == 0) {
-    return S_ISDIR(st.st_mode);
+  DIR *dir = opendir(absolut_path.c_str());
+  if (dir) {
+    closedir(dir);
   }
-  return false;
+  return dir != nullptr;
 }
-size_t SdMmc::file_size(const char *path){
-   std::string absolut_path = build_path(path);
-  struct stat st;
-  if (stat(absolut_path.c_str(), &st) == 0) {
-    return st.st_size;
+
+size_t SdMmc::file_size(const char *path) {
+  std::string absolut_path = build_path(path);
+  struct stat info;
+  size_t file_size = 0;
+  if (stat(absolut_path.c_str(), &info) < 0) {
+    ESP_LOGE(TAG, "Failed to stat file: %s", strerror(errno));
+    return -1;
   }
-  return 0;
+  return info.st_size;
+}
+
+std::string SdMmc::sd_card_type() const {
+  if (this->card_->is_sdio) {
+    return "SDIO";
+  } else if (this->card_->is_mmc) {
+    return "MMC";
+  } else {
+    return (this->card_->ocr & SD_OCR_SDHC_CAP) ? "SDHC/SDXC" : "SDSC";
+  }
+  return "UNKNOWN";
+}
+
+void SdMmc::update_sensors() {
+#ifdef USE_SENSOR
+  if (this->card_ == nullptr)
+    return;
+
+  FATFS *fs;
+  DWORD fre_clust, fre_sect, tot_sect;
+  uint64_t total_bytes = -1, free_bytes = -1, used_bytes = -1;
+  auto res = f_getfree(MOUNT_POINT.c_str(), &fre_clust, &fs);
+  if (!res) {
+    tot_sect = (fs->n_fatent - 2) * fs->csize;
+    fre_sect = fre_clust * fs->csize;
+
+    total_bytes = static_cast<uint64_t>(tot_sect) * FF_SS_SDCARD;
+    free_bytes = static_cast<uint64_t>(fre_sect) * FF_SS_SDCARD;
+    used_bytes = total_bytes - free_bytes;
+  }
+
+  if (this->used_space_sensor_ != nullptr)
+    this->used_space_sensor_->publish_state(used_bytes);
+  if (this->total_space_sensor_ != nullptr)
+    this->total_space_sensor_->publish_state(total_bytes);
+  if (this->free_space_sensor_ != nullptr)
+    this->free_space_sensor_->publish_state(free_bytes);
+
+  for (auto &sensor : this->file_size_sensors_) {
+    if (sensor.sensor != nullptr)
+      sensor.sensor->publish_state(this->file_size(sensor.path));
+  }
+#endif
 }
 
 }  // namespace sd_mmc_card
 }  // namespace esphome
+
+#endif  // USE_ESP_IDF
 
 
 
