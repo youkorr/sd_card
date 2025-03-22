@@ -1,10 +1,6 @@
 #include "sd_mmc_card.h"
 
 #include <algorithm>
-#include <memory>
-#include <dirent.h>       // Pour opendir, readdir, closedir
-#include <sys/stat.h>     // Pour stat, S_ISDIR
-#include <unistd.h>       // Pour unlink, rmdir
 
 #include "math.h"
 #include "esphome/core/log.h"
